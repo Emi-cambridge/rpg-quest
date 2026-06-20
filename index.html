@@ -5,101 +5,62 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>RPG Quest — Tu Aventura Diaria</title>
 <!-- =======================================================
-     RPG QUEST - APLICACIÓN HABITICA-STYLE
+     RPG QUEST - APLICACIÓN HABITICA-STYLE (v2 con editor de misiones y sonido épico)
      Autor: Generado para Emiliano
-     Una sola página: HTML + CSS + JS
-     Base de datos: Google Sheets (vía Apps Script)
      ======================================================= -->
 
-<!-- Fuentes manga / anime -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Russo+One&family=Press+Start+2P&display=swap" rel="stylesheet">
 
-<!-- Librería de confeti -->
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
 
 <style>
-/* =========================================================
-   CONFIGURACIÓN GLOBAL DE ESTILOS
-   ========================================================= */
+/* ========== VARIABLES GLOBALES ========== */
 :root{
-  --bg-1:#0a0a14;          /* Fondo principal oscuro */
-  --bg-2:#13132a;          /* Fondo de paneles */
-  --bg-3:#1c1c3d;          /* Fondo de tarjetas */
-  --accent:#ff3860;        /* Rojo neón estilo anime */
-  --accent-2:#00e5ff;      /* Cian neón */
-  --gold:#ffcc00;          /* Dorado para nivel */
-  --green:#39ff7a;         /* Verde XP */
-  --red:#ff2d4d;           /* Rojo HP */
-  --purple:#b14aff;        /* Morado épico */
-  --text:#f5f5ff;
-  --muted:#9aa0c0;
+  --bg-1:#0a0a14; --bg-2:#13132a; --bg-3:#1c1c3d;
+  --accent:#ff3860; --accent-2:#00e5ff; --gold:#ffcc00;
+  --green:#39ff7a; --red:#ff2d4d; --purple:#b14aff;
+  --text:#f5f5ff; --muted:#9aa0c0;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;}
 body{
   font-family:'Russo One', sans-serif;
   background: radial-gradient(ellipse at top, #1a1a3a 0%, var(--bg-1) 70%);
-  color:var(--text);
-  min-height:100vh;
-  overflow-x:hidden;
+  color:var(--text); min-height:100vh; overflow-x:hidden;
 }
 button{font-family:inherit;cursor:pointer;border:none;}
 input,select,textarea{font-family:inherit;}
-
-/* Scrollbar custom */
 ::-webkit-scrollbar{width:10px;}
 ::-webkit-scrollbar-track{background:var(--bg-1);}
 ::-webkit-scrollbar-thumb{background:var(--accent);border-radius:5px;}
 
-/* =========================================================
-   PANTALLA DE LOGIN
-   ========================================================= */
+/* ========== PANTALLA DE LOGIN ========== */
 #login-screen{
-  position:fixed;inset:0;
-  display:flex;align-items:center;justify-content:center;
-  background: linear-gradient(135deg,#0a0a14 0%,#1a0033 100%);
-  z-index:1000;
+  position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,#0a0a14 0%,#1a0033 100%);z-index:1000;
 }
 .login-box{
-  background:var(--bg-2);
-  padding:40px;
-  border-radius:16px;
+  background:var(--bg-2);padding:40px;border-radius:16px;
   box-shadow:0 0 40px var(--accent), 0 0 80px rgba(255,56,96,0.3);
-  border:2px solid var(--accent);
-  width:90%;max-width:420px;
-  text-align:center;
+  border:2px solid var(--accent);width:90%;max-width:420px;text-align:center;
 }
 .login-title{
-  font-family:'Bangers', cursive;
-  font-size:48px;
-  letter-spacing:3px;
-  color:var(--gold);
-  text-shadow:0 0 10px var(--accent), 0 0 20px var(--accent);
+  font-family:'Bangers',cursive;font-size:48px;letter-spacing:3px;
+  color:var(--gold);text-shadow:0 0 10px var(--accent),0 0 20px var(--accent);
   margin-bottom:8px;
 }
 .login-sub{color:var(--muted);margin-bottom:24px;font-size:13px;}
 .login-box input{
-  width:100%;
-  padding:14px;
-  margin:8px 0;
-  background:var(--bg-3);
-  border:1px solid #333;
-  border-radius:8px;
-  color:var(--text);
-  font-size:15px;
+  width:100%;padding:14px;margin:8px 0;background:var(--bg-3);
+  border:1px solid #333;border-radius:8px;color:var(--text);font-size:15px;
 }
 .login-box input:focus{outline:none;border-color:var(--accent-2);box-shadow:0 0 10px var(--accent-2);}
 .btn{
-  display:inline-block;
-  padding:12px 24px;
-  border-radius:8px;
-  font-size:14px;
-  letter-spacing:1px;
-  text-transform:uppercase;
-  transition:transform .15s, box-shadow .15s;
-  color:#fff;
+  display:inline-block;padding:12px 24px;border-radius:8px;font-size:14px;
+  letter-spacing:1px;text-transform:uppercase;
+  transition:transform .15s, box-shadow .15s;color:#fff;
 }
 .btn:hover{transform:translateY(-2px);}
 .btn-primary{background:linear-gradient(135deg,var(--accent),#ff7a3c);box-shadow:0 0 15px var(--accent);}
@@ -109,123 +70,66 @@ input,select,textarea{font-family:inherit;}
 .btn-row .btn{flex:1;}
 .login-msg{margin-top:10px;font-size:12px;min-height:18px;color:var(--accent);}
 
-/* =========================================================
-   PANTALLA PRINCIPAL — LAYOUT
-   ========================================================= */
+/* ========== LAYOUT PRINCIPAL ========== */
 #app-screen{display:none;}
-.app-wrap{
-  display:grid;
-  grid-template-columns:320px 1fr;
-  min-height:100vh;
-}
-
-/* Sidebar del personaje */
+.app-wrap{display:grid;grid-template-columns:320px 1fr;min-height:100vh;}
 .sidebar{
-  background:var(--bg-2);
-  border-right:2px solid var(--accent);
-  padding:20px;
-  position:sticky;top:0;height:100vh;
-  overflow-y:auto;
+  background:var(--bg-2);border-right:2px solid var(--accent);
+  padding:20px;position:sticky;top:0;height:100vh;overflow-y:auto;
 }
 .char-box{text-align:center;}
 .char-img{
-  width:100%;max-width:220px;
-  filter: drop-shadow(0 0 20px var(--accent-2));
-  animation: float 4s ease-in-out infinite;
+  width:100%;max-width:220px;filter:drop-shadow(0 0 20px var(--accent-2));
+  animation:float 4s ease-in-out infinite;
 }
 @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
 .char-name{
-  font-family:'Bangers', cursive;
-  font-size:28px;letter-spacing:2px;
-  color:var(--gold);
-  text-shadow:0 0 8px var(--gold);
-  margin-top:8px;
+  font-family:'Bangers',cursive;font-size:28px;letter-spacing:2px;
+  color:var(--gold);text-shadow:0 0 8px var(--gold);margin-top:8px;
 }
 .char-class{
-  display:inline-block;
-  padding:4px 10px;
-  background:var(--purple);
-  border-radius:12px;
-  font-size:11px;
-  margin-top:6px;
+  display:inline-block;padding:4px 10px;background:var(--purple);
+  border-radius:12px;font-size:11px;margin-top:6px;
 }
 .level-display{
-  font-family:'Bangers',cursive;
-  font-size:46px;
-  color:var(--gold);
-  text-shadow:0 0 15px var(--gold);
-  margin-top:10px;
+  font-family:'Bangers',cursive;font-size:46px;color:var(--gold);
+  text-shadow:0 0 15px var(--gold);margin-top:10px;
 }
 .level-label{font-size:11px;color:var(--muted);letter-spacing:2px;}
 
-/* Barras de XP y HP */
 .bar{
-  width:100%;height:18px;
-  background:var(--bg-3);
-  border-radius:9px;
-  overflow:hidden;
-  margin:6px 0;
-  border:1px solid #333;
-  position:relative;
+  width:100%;height:18px;background:var(--bg-3);border-radius:9px;
+  overflow:hidden;margin:6px 0;border:1px solid #333;position:relative;
 }
 .bar-fill{
-  height:100%;width:0%;
-  transition:width .8s cubic-bezier(.2,.8,.2,1);
-  background:linear-gradient(90deg,var(--green),#00ffae);
-  box-shadow:0 0 10px var(--green);
+  height:100%;width:0%;transition:width .8s cubic-bezier(.2,.8,.2,1);
+  background:linear-gradient(90deg,var(--green),#00ffae);box-shadow:0 0 10px var(--green);
 }
 .bar-fill.hp{background:linear-gradient(90deg,var(--red),#ff6b6b);box-shadow:0 0 10px var(--red);}
-.bar-label{
-  position:absolute;inset:0;
-  display:flex;align-items:center;justify-content:center;
-  font-size:11px;letter-spacing:1px;
-}
 
-/* Estadísticas y monedas */
 .info-row{display:flex;justify-content:space-between;margin:6px 0;font-size:12px;}
 .coins{color:var(--gold);font-size:16px;}
 .streak{color:#ff7a3c;font-size:14px;}
-.stats-grid{
-  display:grid;grid-template-columns:repeat(2,1fr);
-  gap:6px;margin-top:12px;
-}
-.stat{
-  background:var(--bg-3);padding:8px;border-radius:6px;
-  text-align:center;border:1px solid #2a2a4d;
-}
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:12px;}
+.stat{background:var(--bg-3);padding:8px;border-radius:6px;text-align:center;border:1px solid #2a2a4d;}
 .stat-name{font-size:10px;color:var(--muted);letter-spacing:1px;}
 .stat-val{font-size:22px;color:var(--accent-2);font-family:'Bangers',cursive;}
 
-/* Mascota */
 .pet-box{
-  margin-top:16px;padding:10px;
-  background:var(--bg-3);border-radius:10px;text-align:center;
-  border:1px dashed var(--accent-2);
+  margin-top:16px;padding:10px;background:var(--bg-3);
+  border-radius:10px;text-align:center;border:1px dashed var(--accent-2);
 }
 .pet-emoji{font-size:38px;}
 .pet-name{font-size:12px;margin:4px 0;}
 .pet-xp{font-size:10px;color:var(--muted);}
 
-/* =========================================================
-   CONTENIDO PRINCIPAL Y PESTAÑAS
-   ========================================================= */
-.main{
-  padding:18px 28px;
-  overflow-y:auto;
-}
-.tabs{
-  display:flex;flex-wrap:wrap;gap:6px;
-  border-bottom:2px solid var(--accent);
-  margin-bottom:18px;
-}
+/* ========== CONTENIDO PRINCIPAL ========== */
+.main{padding:18px 28px;overflow-y:auto;}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;border-bottom:2px solid var(--accent);margin-bottom:18px;}
 .tab-btn{
-  background:var(--bg-3);
-  color:var(--muted);
-  padding:10px 18px;
-  border-radius:8px 8px 0 0;
-  font-size:13px;letter-spacing:1px;
-  text-transform:uppercase;
-  transition:all .2s;
+  background:var(--bg-3);color:var(--muted);padding:10px 18px;
+  border-radius:8px 8px 0 0;font-size:13px;letter-spacing:1px;
+  text-transform:uppercase;transition:all .2s;
 }
 .tab-btn:hover{color:var(--text);}
 .tab-btn.active{background:var(--accent);color:#fff;box-shadow:0 -2px 10px var(--accent);}
@@ -233,21 +137,15 @@ input,select,textarea{font-family:inherit;}
 .tab-content.active{display:block;}
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
 
-/* Título de sección */
 .section-title{
-  font-family:'Bangers',cursive;
-  font-size:32px;letter-spacing:2px;
-  color:var(--accent-2);
-  text-shadow:0 0 8px var(--accent-2);
-  margin-bottom:14px;
+  font-family:'Bangers',cursive;font-size:32px;letter-spacing:2px;
+  color:var(--accent-2);text-shadow:0 0 8px var(--accent-2);margin-bottom:14px;
 }
 
 /* Formulario de tarea */
 .task-form{
-  display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;
-  gap:8px;margin-bottom:18px;
-  background:var(--bg-2);padding:12px;border-radius:10px;
-  border:1px solid #2a2a4d;
+  display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:8px;margin-bottom:18px;
+  background:var(--bg-2);padding:12px;border-radius:10px;border:1px solid #2a2a4d;
 }
 .task-form input,.task-form select{
   padding:10px;background:var(--bg-3);color:var(--text);
@@ -256,25 +154,19 @@ input,select,textarea{font-family:inherit;}
 
 /* Listado de tareas */
 .task-group-title{
-  font-family:'Bangers',cursive;
-  font-size:22px;color:var(--gold);
+  font-family:'Bangers',cursive;font-size:22px;color:var(--gold);
   margin:14px 0 6px;letter-spacing:1px;
 }
 .task-list{display:flex;flex-direction:column;gap:8px;}
 .task-card{
-  background:var(--bg-2);
-  border:1px solid #2a2a4d;
-  border-left:5px solid var(--accent-2);
-  padding:12px 14px;
-  border-radius:8px;
-  display:flex;align-items:center;justify-content:space-between;
-  transition:transform .15s;
+  background:var(--bg-2);border:1px solid #2a2a4d;border-left:5px solid var(--accent-2);
+  padding:12px 14px;border-radius:8px;display:flex;align-items:center;
+  justify-content:space-between;transition:transform .15s;
 }
 .task-card:hover{transform:translateX(4px);}
 .task-card.overdue{
-  border-left-color:var(--red);
-  background:rgba(255,45,77,0.05);
-  animation: pulse-red 2s infinite;
+  border-left-color:var(--red);background:rgba(255,45,77,0.05);
+  animation:pulse-red 2s infinite;
 }
 @keyframes pulse-red{0%,100%{box-shadow:0 0 0 rgba(255,45,77,0);}50%{box-shadow:0 0 15px rgba(255,45,77,0.4);}}
 .task-card.dificultad-facil{border-left-color:#39ff7a;}
@@ -286,45 +178,57 @@ input,select,textarea{font-family:inherit;}
 .task-meta{font-size:11px;color:var(--muted);margin-top:4px;}
 .task-actions{display:flex;gap:6px;}
 .icon-btn{
-  width:36px;height:36px;border-radius:50%;
-  background:var(--bg-3);color:var(--text);
-  display:flex;align-items:center;justify-content:center;
-  font-size:16px;transition:all .2s;
+  width:36px;height:36px;border-radius:50%;background:var(--bg-3);color:var(--text);
+  display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .2s;
 }
 .icon-btn.done{background:var(--green);color:#000;}
 .icon-btn.done:hover{box-shadow:0 0 15px var(--green);}
 .icon-btn.delete{background:var(--red);}
 .icon-btn.delete:hover{box-shadow:0 0 15px var(--red);}
 
-/* Misiones */
+/* Formulario y tarjetas de misiones */
+.quest-form{
+  display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;margin-bottom:18px;
+  background:var(--bg-2);padding:14px;border-radius:10px;border:1px solid var(--purple);
+}
+.quest-form .full{grid-column:1 / -1;}
+.quest-form input,.quest-form textarea{
+  padding:10px;background:var(--bg-3);color:var(--text);
+  border:1px solid #333;border-radius:6px;font-size:14px;font-family:inherit;
+}
+.quest-form textarea{min-height:60px;resize:vertical;}
 .quest-card{
   background:var(--bg-2);padding:14px;border-radius:10px;
-  margin-bottom:10px;border:1px solid var(--purple);
+  margin-bottom:10px;border:1px solid var(--purple);transition:all .25s;
 }
+.quest-card.complete{border-color:var(--gold);box-shadow:0 0 18px var(--gold);}
 .quest-title{font-size:18px;color:var(--purple);}
 .quest-desc{font-size:12px;color:var(--muted);margin:6px 0;}
+.quest-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+.badge-complete{
+  display:inline-block;background:var(--gold);color:#222;padding:3px 10px;
+  border-radius:12px;font-size:11px;letter-spacing:1px;margin-left:8px;
+}
 
 /* Jefe semanal */
 .boss-panel{
-  background:linear-gradient(135deg,#2a0a14,#1a0033);
-  padding:24px;border-radius:14px;
-  border:2px solid var(--red);
-  box-shadow:0 0 30px rgba(255,45,77,0.3);
-  text-align:center;
+  background:linear-gradient(135deg,#2a0a14,#1a0033);padding:24px;
+  border-radius:14px;border:2px solid var(--red);
+  box-shadow:0 0 30px rgba(255,45,77,0.3);text-align:center;
 }
 .boss-emoji{font-size:120px;filter:drop-shadow(0 0 20px var(--red));}
-.boss-name{font-family:'Bangers',cursive;font-size:42px;color:var(--red);letter-spacing:3px;text-shadow:0 0 12px var(--red);}
+.boss-name{
+  font-family:'Bangers',cursive;font-size:42px;color:var(--red);
+  letter-spacing:3px;text-shadow:0 0 12px var(--red);
+}
 .boss-hp{max-width:500px;margin:14px auto;}
 .boss-log{margin-top:14px;font-size:12px;color:var(--muted);max-height:120px;overflow-y:auto;}
 
 /* Tienda */
-.shop-grid{
-  display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
-  gap:14px;
-}
+.shop-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;}
 .shop-item{
-  background:var(--bg-2);padding:14px;border-radius:10px;
-  text-align:center;border:2px solid #333;transition:all .2s;
+  background:var(--bg-2);padding:14px;border-radius:10px;text-align:center;
+  border:2px solid #333;transition:all .2s;
 }
 .shop-item:hover{transform:translateY(-4px);}
 .shop-item.comun{border-color:#888;}
@@ -350,10 +254,7 @@ input,select,textarea{font-family:inherit;}
   background:var(--bg-2);padding:14px;border-radius:10px;text-align:center;
   border:1px solid #2a2a4d;transition:all .2s;
 }
-.ach-card.unlocked{
-  border-color:var(--gold);
-  box-shadow:0 0 12px var(--gold);
-}
+.ach-card.unlocked{border-color:var(--gold);box-shadow:0 0 12px var(--gold);}
 .ach-card.locked{filter:grayscale(1) opacity(0.4);}
 .ach-emoji{font-size:42px;}
 .ach-name{font-size:13px;margin-top:6px;}
@@ -365,18 +266,15 @@ input,select,textarea{font-family:inherit;}
 .ranking-table th{background:var(--bg-3);color:var(--accent-2);letter-spacing:1px;}
 .ranking-table tr.me{background:rgba(255,204,0,0.1);}
 
-/* =========================================================
-   MODALES Y EFECTOS
-   ========================================================= */
+/* Modales */
 .modal-overlay{
   position:fixed;inset:0;background:rgba(0,0,0,0.85);
   display:none;align-items:center;justify-content:center;z-index:2000;
 }
 .modal-overlay.show{display:flex;}
 .modal{
-  background:var(--bg-2);padding:30px;border-radius:14px;
-  border:2px solid var(--accent);box-shadow:0 0 40px var(--accent);
-  max-width:600px;width:90%;text-align:center;
+  background:var(--bg-2);padding:30px;border-radius:14px;border:2px solid var(--accent);
+  box-shadow:0 0 40px var(--accent);max-width:600px;width:90%;text-align:center;
 }
 .class-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:14px;}
 .class-card{
@@ -390,9 +288,8 @@ input,select,textarea{font-family:inherit;}
 
 /* Overlay subida de nivel */
 .levelup-overlay{
-  position:fixed;inset:0;background:rgba(255,204,0,0.0);
-  display:none;align-items:center;justify-content:center;
-  z-index:3000;pointer-events:none;
+  position:fixed;inset:0;background:rgba(255,204,0,0.0);display:none;
+  align-items:center;justify-content:center;z-index:3000;pointer-events:none;
 }
 .levelup-overlay.show{display:flex;animation:flash 1.5s ease;}
 @keyframes flash{
@@ -401,10 +298,8 @@ input,select,textarea{font-family:inherit;}
   100%{background:rgba(255,204,0,0);}
 }
 .levelup-text{
-  font-family:'Bangers',cursive;
-  font-size:120px;letter-spacing:5px;color:var(--gold);
-  text-shadow:0 0 30px var(--accent),0 0 60px var(--accent);
-  animation:zoom 1.5s ease;
+  font-family:'Bangers',cursive;font-size:120px;letter-spacing:5px;color:var(--gold);
+  text-shadow:0 0 30px var(--accent),0 0 60px var(--accent);animation:zoom 1.5s ease;
 }
 @keyframes zoom{
   0%{transform:scale(0.2);opacity:0;}
@@ -412,44 +307,37 @@ input,select,textarea{font-family:inherit;}
   100%{transform:scale(1);opacity:0;}
 }
 
-/* Overlay nueva apariencia */
 .evolve-overlay{
-  position:fixed;inset:0;background:rgba(0,0,0,0.92);
-  display:none;align-items:center;justify-content:center;z-index:3500;
-  flex-direction:column;
+  position:fixed;inset:0;background:rgba(0,0,0,0.92);display:none;
+  align-items:center;justify-content:center;z-index:3500;flex-direction:column;
 }
 .evolve-overlay.show{display:flex;}
 .evolve-title{
-  font-family:'Bangers',cursive;font-size:60px;
-  color:var(--accent);text-shadow:0 0 20px var(--accent);
-  margin-bottom:20px;letter-spacing:3px;
+  font-family:'Bangers',cursive;font-size:60px;color:var(--accent);
+  text-shadow:0 0 20px var(--accent);margin-bottom:20px;letter-spacing:3px;
 }
 .evolve-images{display:flex;gap:30px;align-items:center;}
 .evolve-images img{width:200px;filter:drop-shadow(0 0 20px var(--accent-2));}
 .evolve-arrow{font-size:60px;color:var(--gold);animation:pulse 1s infinite;}
 @keyframes pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.3);}}
 
-/* Botón sonido y salir */
 .top-actions{position:fixed;top:14px;right:18px;display:flex;gap:8px;z-index:100;}
 .top-actions .icon-btn{background:var(--bg-3);}
 
-/* =========================================================
-   RESPONSIVE
-   ========================================================= */
+/* Responsive */
 @media (max-width:800px){
   .app-wrap{grid-template-columns:1fr;}
   .sidebar{position:relative;height:auto;border-right:none;border-bottom:2px solid var(--accent);}
   .char-img{max-width:140px;}
   .task-form{grid-template-columns:1fr 1fr;}
+  .quest-form{grid-template-columns:1fr 1fr;}
   .level-display{font-size:36px;}
 }
 </style>
 </head>
 <body>
 
-<!-- =========================================================
-     PANTALLA DE LOGIN
-     ========================================================= -->
+<!-- ========== PANTALLA DE LOGIN ========== -->
 <div id="login-screen">
   <div class="login-box">
     <div class="login-title">RPG QUEST</div>
@@ -464,18 +352,14 @@ input,select,textarea{font-family:inherit;}
   </div>
 </div>
 
-<!-- =========================================================
-     PANTALLA PRINCIPAL DE LA APP
-     ========================================================= -->
+<!-- ========== APP PRINCIPAL ========== -->
 <div id="app-screen">
-
   <div class="top-actions">
     <button class="icon-btn" id="sound-btn" onclick="toggleSound()" title="Sonido">🔊</button>
     <button class="icon-btn delete" onclick="doLogout()" title="Salir">🚪</button>
   </div>
 
   <div class="app-wrap">
-    <!-- Barra lateral con el personaje -->
     <aside class="sidebar">
       <div class="char-box">
         <img id="char-img" class="char-img" src="" alt="Personaje" />
@@ -490,7 +374,10 @@ input,select,textarea{font-family:inherit;}
         <div class="info-row"><span>HP ❤️</span><span id="hp-text">50 / 50</span></div>
         <div class="bar"><div class="bar-fill hp" id="hp-bar"></div></div>
 
-        <div class="info-row"><span class="coins">💰 <span id="coins">0</span></span><span class="streak">🔥 <span id="streak">0</span> días</span></div>
+        <div class="info-row">
+          <span class="coins">💰 <span id="coins">0</span></span>
+          <span class="streak">🔥 <span id="streak">0</span> días</span>
+        </div>
 
         <div class="stats-grid">
           <div class="stat"><div class="stat-name">FUE</div><div class="stat-val" id="stat-str">5</div></div>
@@ -499,7 +386,6 @@ input,select,textarea{font-family:inherit;}
           <div class="stat"><div class="stat-name">CAR</div><div class="stat-val" id="stat-cha">5</div></div>
         </div>
 
-        <!-- Mascota -->
         <div class="pet-box">
           <div class="pet-emoji" id="pet-emoji">🥚</div>
           <div class="pet-name" id="pet-name">Mascota</div>
@@ -509,9 +395,7 @@ input,select,textarea{font-family:inherit;}
       </div>
     </aside>
 
-    <!-- Contenido principal -->
     <main class="main">
-      <!-- Navegación por pestañas -->
       <nav class="tabs">
         <button class="tab-btn active" data-tab="tareas" onclick="showTab('tareas')">📋 Tareas</button>
         <button class="tab-btn" data-tab="misiones" onclick="showTab('misiones')">🗺️ Misiones</button>
@@ -522,7 +406,7 @@ input,select,textarea{font-family:inherit;}
         <button class="tab-btn" data-tab="ranking" onclick="showTab('ranking')">📊 Ranking</button>
       </nav>
 
-      <!-- Pestaña TAREAS -->
+      <!-- TAREAS -->
       <section class="tab-content active" id="tab-tareas">
         <div class="section-title">Tus Tareas</div>
         <form class="task-form" onsubmit="addTask(event)">
@@ -530,7 +414,7 @@ input,select,textarea{font-family:inherit;}
           <select id="t-type">
             <option value="habito">Hábito</option>
             <option value="diaria">Diaria</option>
-            <option value="mision">Misión</option>
+            <option value="mision">Tarea de Misión</option>
           </select>
           <select id="t-diff">
             <option value="facil">Fácil (+10 XP)</option>
@@ -547,27 +431,26 @@ input,select,textarea{font-family:inherit;}
           <button type="submit" class="btn btn-primary">➕</button>
         </form>
 
-        <div id="tasks-habits">
-          <div class="task-group-title">⚡ Hábitos</div>
-          <div class="task-list" id="list-habito"></div>
-        </div>
-        <div id="tasks-dailies">
-          <div class="task-group-title">📅 Diarias</div>
-          <div class="task-list" id="list-diaria"></div>
-        </div>
-        <div id="tasks-quests">
-          <div class="task-group-title">🎯 Pequeñas Misiones</div>
-          <div class="task-list" id="list-mision"></div>
-        </div>
+        <div><div class="task-group-title">⚡ Hábitos</div><div class="task-list" id="list-habito"></div></div>
+        <div><div class="task-group-title">📅 Diarias</div><div class="task-list" id="list-diaria"></div></div>
+        <div><div class="task-group-title">🎯 Pequeñas Misiones</div><div class="task-list" id="list-mision"></div></div>
       </section>
 
-      <!-- Pestaña MISIONES -->
+      <!-- MISIONES ÉPICAS (con editor) -->
       <section class="tab-content" id="tab-misiones">
         <div class="section-title">Misiones Épicas</div>
+        <form class="quest-form" onsubmit="addQuestForm(event)">
+          <input class="full" id="q-title" type="text" placeholder="Título de la misión (ej. Leer 5 libros)" required />
+          <textarea class="full" id="q-desc" placeholder="Descripción / objetivo de la misión"></textarea>
+          <input id="q-obj" type="number" min="1" value="5" title="Número de pasos para completarla" />
+          <input id="q-xp" type="number" min="0" value="100" title="Recompensa de XP" />
+          <input id="q-coins" type="number" min="0" value="50" title="Recompensa de monedas" />
+          <button type="submit" class="btn btn-primary">➕ Añadir Misión</button>
+        </form>
         <div id="quests-list"></div>
       </section>
 
-      <!-- Pestaña JEFE -->
+      <!-- JEFE -->
       <section class="tab-content" id="tab-jefe">
         <div class="section-title">Jefe Semanal</div>
         <div class="boss-panel" id="boss-panel">
@@ -578,31 +461,31 @@ input,select,textarea{font-family:inherit;}
             <div id="boss-hp-text">- / -</div>
           </div>
           <div style="color:var(--muted);font-size:13px;margin-top:8px;">
-            💡 Cada tarea completada inflige daño automáticamente al jefe según su dificultad.
+            💡 Cada tarea completada inflige daño automáticamente al jefe.
           </div>
           <div class="boss-log" id="boss-log"></div>
         </div>
       </section>
 
-      <!-- Pestaña TIENDA -->
+      <!-- TIENDA -->
       <section class="tab-content" id="tab-tienda">
         <div class="section-title">Tienda de Aventurero</div>
         <div class="shop-grid" id="shop-grid"></div>
       </section>
 
-      <!-- Pestaña INVENTARIO -->
+      <!-- INVENTARIO -->
       <section class="tab-content" id="tab-inventario">
         <div class="section-title">Tu Inventario</div>
         <div class="inv-grid" id="inv-grid"></div>
       </section>
 
-      <!-- Pestaña LOGROS -->
+      <!-- LOGROS -->
       <section class="tab-content" id="tab-logros">
         <div class="section-title">Salón de la Fama</div>
         <div class="ach-grid" id="ach-grid"></div>
       </section>
 
-      <!-- Pestaña RANKING -->
+      <!-- RANKING -->
       <section class="tab-content" id="tab-ranking">
         <div class="section-title">Ranking Global</div>
         <table class="ranking-table">
@@ -614,9 +497,7 @@ input,select,textarea{font-family:inherit;}
   </div>
 </div>
 
-<!-- =========================================================
-     MODAL DE SELECCIÓN DE CLASE (al llegar a nivel 10)
-     ========================================================= -->
+<!-- Modal de elección de clase -->
 <div class="modal-overlay" id="class-modal">
   <div class="modal">
     <div class="section-title">¡Elige tu clase!</div>
@@ -646,12 +527,10 @@ input,select,textarea{font-family:inherit;}
   </div>
 </div>
 
-<!-- Overlay de subida de nivel -->
 <div class="levelup-overlay" id="levelup-overlay">
   <div class="levelup-text">¡NIVEL UP!</div>
 </div>
 
-<!-- Overlay de evolución de apariencia -->
 <div class="evolve-overlay" id="evolve-overlay">
   <div class="evolve-title">✨ NUEVA APARIENCIA DESBLOQUEADA ✨</div>
   <div class="evolve-images">
@@ -663,38 +542,24 @@ input,select,textarea{font-family:inherit;}
 </div>
 
 <script>
-/* =========================================================
-   CONFIGURACIÓN — PEGA AQUÍ TU URL DEL APPS SCRIPT
-   ========================================================= */
+/* ========== CONFIGURACIÓN ========== */
 const CONFIG = {
-  APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbx4sbrh2SyhcanLlvWxXZluK-flsXFe6WxK_pIzhJ-GpzDzyg6qDJqFvyYg4-ytzZHW/exec',
+  APPS_SCRIPT_URL: 'PEGA_AQUI_LA_URL_DE_TU_APPS_SCRIPT',
   SOUND_ON: true
 };
 
-/* Estado global del usuario en memoria */
 let STATE = {
-  user: null,
-  data: null,    // datos del usuario (nivel, xp, etc.)
-  tasks: [],
-  quests: [],
-  boss: null,
-  shop: [],
-  inventory: [],
-  achievements: [],
-  ranking: []
+  user:null, data:null, tasks:[], quests:[], boss:null,
+  shop:[], inventory:[], achievements:[], ranking:[]
 };
 
-/* =========================================================
-   UTILIDADES
-   ========================================================= */
-// Hashea una contraseña con SHA-256 (texto plano → hexadecimal)
+/* ========== UTILIDADES ========== */
 async function sha256(text){
   const buf = new TextEncoder().encode(text);
   const hash = await crypto.subtle.digest('SHA-256', buf);
   return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
 
-// Llama al backend Apps Script (POST con JSON)
 async function postAction(action, payload={}){
   if(!CONFIG.APPS_SCRIPT_URL || CONFIG.APPS_SCRIPT_URL.startsWith('PEGA_AQUI')){
     alert('⚠️ Debes configurar CONFIG.APPS_SCRIPT_URL en index.html');
@@ -702,35 +567,75 @@ async function postAction(action, payload={}){
   }
   const body = JSON.stringify({action, payload, user: STATE.user});
   const res = await fetch(CONFIG.APPS_SCRIPT_URL, {
-    method:'POST',
-    body,
-    // Apps Script requiere text/plain para evitar CORS preflight
+    method:'POST', body,
     headers:{'Content-Type':'text/plain;charset=utf-8'}
   });
   return await res.json();
 }
 
-// XP necesaria para subir al siguiente nivel
 function xpNeeded(level){ return Math.round(100 * Math.pow(level, 1.5)); }
 
-// Devuelve la ruta de imagen del personaje según nivel
 function charImagePath(level){
   const bucket = Math.min(100, Math.max(10, Math.ceil(level/10)*10));
   return `./images/char_lvl_${bucket}.png`;
 }
 
-// Reproduce un "ding" usando Web Audio API
-function playDing(){
+/* ========== SONIDOS ÉPICOS ========== */
+// Acorde Do mayor heroico (C5+E5+G5 con stagger + sparkle final)
+function playEpic(){
   if(!CONFIG.SOUND_ON) return;
   try{
     const ctx = new (window.AudioContext||window.webkitAudioContext)();
-    const o = ctx.createOscillator(), g = ctx.createGain();
-    o.connect(g); g.connect(ctx.destination);
-    o.frequency.value = 880; o.type='triangle';
-    g.gain.setValueAtTime(0.0001, ctx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.2, ctx.currentTime+0.01);
-    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime+0.3);
-    o.start(); o.stop(ctx.currentTime+0.3);
+    const notes = [523.25, 659.25, 783.99];
+    notes.forEach((freq, i) => {
+      const o1 = ctx.createOscillator();
+      const o2 = ctx.createOscillator();
+      const g  = ctx.createGain();
+      o1.type='square'; o2.type='triangle';
+      o1.frequency.value = freq;
+      o2.frequency.value = freq*2;
+      o1.connect(g); o2.connect(g); g.connect(ctx.destination);
+      const start = ctx.currentTime + i*0.06;
+      g.gain.setValueAtTime(0.0001, start);
+      g.gain.exponentialRampToValueAtTime(0.15, start+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, start+0.8);
+      o1.start(start); o2.start(start);
+      o1.stop(start+0.85); o2.stop(start+0.85);
+    });
+    // Sparkle cristalino final
+    const sp = ctx.createOscillator(), sg = ctx.createGain();
+    sp.type='sine'; sp.frequency.value = 1568;
+    sp.connect(sg); sg.connect(ctx.destination);
+    const sStart = ctx.currentTime + 0.25;
+    sg.gain.setValueAtTime(0.0001, sStart);
+    sg.gain.exponentialRampToValueAtTime(0.08, sStart+0.02);
+    sg.gain.exponentialRampToValueAtTime(0.0001, sStart+0.6);
+    sp.start(sStart); sp.stop(sStart+0.65);
+  }catch(e){}
+}
+const playDing = playEpic;  // alias
+
+// Arpegio ascendente heroico para subida de nivel
+function playLevelUpSound(){
+  if(!CONFIG.SOUND_ON) return;
+  try{
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    const notes = [523.25, 659.25, 783.99, 1046.50, 783.99, 1046.50];
+    notes.forEach((freq, i) => {
+      const o = ctx.createOscillator();
+      const o2 = ctx.createOscillator();
+      const g  = ctx.createGain();
+      o.type='square'; o2.type='triangle';
+      o.frequency.value = freq;
+      o2.frequency.value = freq*0.5;
+      o.connect(g); o2.connect(g); g.connect(ctx.destination);
+      const start = ctx.currentTime + i*0.18;
+      g.gain.setValueAtTime(0.0001, start);
+      g.gain.exponentialRampToValueAtTime(0.18, start+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, start+0.28);
+      o.start(start); o2.start(start);
+      o.stop(start+0.3); o2.stop(start+0.3);
+    });
   }catch(e){}
 }
 
@@ -739,9 +644,7 @@ function toggleSound(){
   document.getElementById('sound-btn').textContent = CONFIG.SOUND_ON ? '🔊' : '🔇';
 }
 
-/* =========================================================
-   LOGIN / REGISTRO
-   ========================================================= */
+/* ========== LOGIN / REGISTRO ========== */
 async function doLogin(){
   const u = document.getElementById('login-user').value.trim();
   const p = document.getElementById('login-pass').value;
@@ -775,28 +678,21 @@ async function doRegister(){
 
 function msg(t){ document.getElementById('login-msg').textContent = t; }
 
-function doLogout(){
-  sessionStorage.clear();
-  location.reload();
-}
+function doLogout(){ sessionStorage.clear(); location.reload(); }
 
-/* =========================================================
-   ENTRAR A LA APP
-   ========================================================= */
+/* ========== ENTRAR A LA APP ========== */
 async function enterApp(userData){
   document.getElementById('login-screen').style.display='none';
   document.getElementById('app-screen').style.display='block';
   STATE.data = userData;
-  // Ejecuta el "rollover" diario (pérdida de HP, racha, etc.)
   const ro = await postAction('dailyRollover',{});
   if(ro.ok) STATE.data = ro.data;
   renderAll();
-  loadTasks(); loadQuests(); loadBoss(); loadShop(); loadInventory(); loadAchievements(); loadRanking();
+  loadTasks(); loadQuests(); loadBoss(); loadShop();
+  loadInventory(); loadAchievements(); loadRanking();
 }
 
-/* =========================================================
-   RENDERIZAR DATOS DEL PERSONAJE
-   ========================================================= */
+/* ========== RENDER PERSONAJE ========== */
 function renderAll(){
   const d = STATE.data;
   document.getElementById('char-name').textContent = d.usuario;
@@ -814,29 +710,23 @@ function renderAll(){
   document.getElementById('stat-int').textContent = d.stat_int;
   document.getElementById('stat-con').textContent = d.stat_con;
   document.getElementById('stat-cha').textContent = d.stat_cha;
-  // Mascota
   const petStages = ['🥚','🐣','🐥','🐉','🔥🐲'];
   const ml = Math.min(d.mascota_nivel||0, 4);
   document.getElementById('pet-emoji').textContent = petStages[ml];
   document.getElementById('pet-name').textContent = d.mascota_nombre || 'Bebé Dragón';
   document.getElementById('pet-xp').textContent = `XP: ${d.mascota_xp||0}`;
-  // Si llegó a 10 y no tiene clase → modal
   if(d.nivel>=10 && (!d.clase||d.clase==='Sin clase')){
     document.getElementById('class-modal').classList.add('show');
   }
 }
 
-/* =========================================================
-   PESTAÑAS
-   ========================================================= */
+/* ========== PESTAÑAS ========== */
 function showTab(name){
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));
   document.querySelectorAll('.tab-content').forEach(c=>c.classList.toggle('active',c.id==='tab-'+name));
 }
 
-/* =========================================================
-   TAREAS
-   ========================================================= */
+/* ========== TAREAS ========== */
 async function loadTasks(){
   const r = await postAction('getTasks',{});
   if(r.ok){ STATE.tasks = r.data; renderTasks(); }
@@ -873,12 +763,11 @@ function renderTasks(){
 function statIcon(s){ return ({fuerza:'💪',inteligencia:'🧠',constitucion:'🛡️',carisma:'💬'})[s]||''; }
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
-// Detecta si una tarea diaria está vencida (no completada hoy)
 function isOverdue(t){
   if(t.tipo!=='diaria') return false;
   if(!t.ultima_completada) return true;
   const today = new Date().toISOString().slice(0,10);
-  return t.ultima_completada.slice(0,10) !== today;
+  return String(t.ultima_completada).slice(0,10) !== today;
 }
 
 async function addTask(e){
@@ -900,11 +789,9 @@ async function completeTask(id){
   const oldLevel = STATE.data.nivel;
   STATE.data = r.user;
   STATE.tasks = r.tasks;
-  // Efectos visuales
-  playDing();
+  playEpic();
   confetti({particleCount:80, spread:70, origin:{y:0.7}, colors:['#ff3860','#00e5ff','#ffcc00','#39ff7a']});
   renderTasks(); renderAll();
-  // Subida de nivel
   if(r.user.nivel > oldLevel){
     showLevelUp();
     const oldBucket = Math.ceil(oldLevel/10)*10;
@@ -913,7 +800,6 @@ async function completeTask(id){
       setTimeout(()=>showEvolve(oldBucket,newBucket), 1600);
     }
   }
-  // Refresca jefe y logros
   loadBoss(); loadAchievements();
 }
 
@@ -923,9 +809,7 @@ async function deleteTask(id){
   if(r.ok){ STATE.tasks = r.data; renderTasks(); }
 }
 
-/* =========================================================
-   MISIONES (multi-paso)
-   ========================================================= */
+/* ========== MISIONES ÉPICAS (con editor) ========== */
 async function loadQuests(){
   const r = await postAction('getQuests',{});
   if(r.ok){ STATE.quests = r.data; renderQuests(); }
@@ -935,25 +819,81 @@ function renderQuests(){
   const box = document.getElementById('quests-list');
   box.innerHTML = '';
   if(STATE.quests.length===0){
-    box.innerHTML = '<div style="color:var(--muted);">Aún no tienes misiones largas. Pronto añadiremos un editor aquí.</div>';
+    box.innerHTML = '<div style="color:var(--muted);padding:8px;">Aún no tienes misiones. ¡Crea una arriba!</div>';
     return;
   }
   STATE.quests.forEach(q=>{
     const pct = Math.min(100,(q.progreso/q.objetivo)*100);
+    const isDone = q.progreso >= q.objetivo;
+    const isClaimed = q.estado === 'reclamada';
     const div = document.createElement('div');
-    div.className='quest-card';
+    div.className = 'quest-card' + (isDone?' complete':'');
     div.innerHTML = `
-      <div class="quest-title">🗡️ ${escapeHtml(q.titulo)}</div>
-      <div class="quest-desc">${escapeHtml(q.descripcion)}</div>
+      <div class="quest-title">🗡️ ${escapeHtml(q.titulo)} ${isDone?'<span class="badge-complete">¡COMPLETADA!</span>':''}</div>
+      <div class="quest-desc">${escapeHtml(q.descripcion||'')}</div>
       <div class="bar"><div class="bar-fill" style="width:${pct}%;"></div></div>
-      <div style="font-size:11px;color:var(--muted);margin-top:4px;">${q.progreso} / ${q.objetivo} · Recompensa: ${q.recompensa_xp} XP, ${q.recompensa_monedas}💰</div>`;
+      <div style="font-size:11px;color:var(--muted);margin-top:4px;">${q.progreso} / ${q.objetivo} · Recompensa: ${q.recompensa_xp} XP, ${q.recompensa_monedas}💰</div>
+      <div class="quest-actions">
+        ${isClaimed
+          ? '<span style="color:var(--muted);font-size:12px;">✅ Recompensa ya reclamada</span>'
+          : isDone
+            ? `<button class="btn btn-gold" onclick="claimQuest('${q.id}')">🎁 Reclamar recompensa</button>`
+            : `<button class="btn btn-secondary" onclick="advanceQuest('${q.id}')">+1 progreso</button>`
+        }
+        <button class="btn" style="background:var(--red);" onclick="deleteQuest('${q.id}')">✕ Borrar</button>
+      </div>`;
     box.appendChild(div);
   });
 }
 
-/* =========================================================
-   JEFE SEMANAL
-   ========================================================= */
+async function addQuestForm(e){
+  e.preventDefault();
+  const quest = {
+    titulo: document.getElementById('q-title').value.trim(),
+    descripcion: document.getElementById('q-desc').value.trim(),
+    objetivo: parseInt(document.getElementById('q-obj').value)||5,
+    recompensa_xp: parseInt(document.getElementById('q-xp').value)||100,
+    recompensa_monedas: parseInt(document.getElementById('q-coins').value)||50
+  };
+  if(!quest.titulo) return;
+  const r = await postAction('addQuest',{quest});
+  if(r.ok){
+    document.getElementById('q-title').value='';
+    document.getElementById('q-desc').value='';
+    STATE.quests = r.data;
+    renderQuests();
+    confetti({particleCount:30,spread:60,origin:{y:0.7},colors:['#b14aff']});
+  }
+}
+
+async function advanceQuest(id){
+  const r = await postAction('updateQuest',{questId:id, delta:1});
+  if(r.ok){
+    STATE.quests = r.data;
+    renderQuests();
+    playEpic();
+    confetti({particleCount:40,spread:60,origin:{y:0.7},colors:['#b14aff','#00e5ff']});
+  }
+}
+
+async function deleteQuest(id){
+  if(!confirm('¿Borrar esta misión?')) return;
+  const r = await postAction('deleteQuest',{questId:id});
+  if(r.ok){ STATE.quests = r.data; renderQuests(); }
+}
+
+async function claimQuest(id){
+  const r = await postAction('claimQuest',{questId:id});
+  if(!r.ok) return alert(r.error||'Error');
+  STATE.data = r.user;
+  STATE.quests = r.data;
+  renderAll();
+  renderQuests();
+  showLevelUp();
+  confetti({particleCount:250,spread:160,origin:{y:0.5}});
+}
+
+/* ========== JEFE ========== */
 async function loadBoss(){
   const r = await postAction('getBoss',{});
   if(r.ok){ STATE.boss = r.data; renderBoss(); }
@@ -969,9 +909,7 @@ function renderBoss(){
   document.getElementById('boss-log').textContent = `Recompensa por derrotarlo: ${b.recompensa} 💰 + 200 XP`;
 }
 
-/* =========================================================
-   TIENDA
-   ========================================================= */
+/* ========== TIENDA ========== */
 async function loadShop(){
   const r = await postAction('getShop',{});
   if(r.ok){ STATE.shop = r.data; renderShop(); }
@@ -1000,12 +938,11 @@ async function buyItem(id){
   if(!r.ok) return alert(r.error||'No tienes monedas suficientes');
   STATE.data = r.user; renderAll();
   loadInventory();
+  playEpic();
   confetti({particleCount:40,spread:60,origin:{y:0.6},colors:['#ffcc00']});
 }
 
-/* =========================================================
-   INVENTARIO
-   ========================================================= */
+/* ========== INVENTARIO ========== */
 async function loadInventory(){
   const r = await postAction('getInventory',{});
   if(r.ok){ STATE.inventory = r.data; renderInventory(); }
@@ -1033,9 +970,7 @@ async function equipItem(id){
   if(r.ok){ STATE.inventory = r.data; renderInventory(); }
 }
 
-/* =========================================================
-   LOGROS
-   ========================================================= */
+/* ========== LOGROS ========== */
 async function loadAchievements(){
   const r = await postAction('getAchievements',{});
   if(r.ok){ STATE.achievements = r.data; renderAchievements(); }
@@ -1052,9 +987,7 @@ function renderAchievements(){
   });
 }
 
-/* =========================================================
-   RANKING
-   ========================================================= */
+/* ========== RANKING ========== */
 async function loadRanking(){
   const r = await postAction('getRanking',{});
   if(r.ok){ STATE.ranking = r.data; renderRanking(); }
@@ -1071,55 +1004,53 @@ function renderRanking(){
   });
 }
 
-/* =========================================================
-   CLASES Y MASCOTA
-   ========================================================= */
+/* ========== CLASE Y MASCOTA ========== */
 async function chooseClass(cls){
   const r = await postAction('chooseClass',{clase:cls});
   if(r.ok){
     STATE.data = r.user;
     document.getElementById('class-modal').classList.remove('show');
     renderAll();
+    playEpic();
   }
 }
 
 async function feedPet(){
   if(STATE.data.monedas < 10) return alert('Necesitas 10 monedas');
   const r = await postAction('feedPet',{coins:10});
-  if(r.ok){ STATE.data = r.user; renderAll(); confetti({particleCount:30,origin:{y:0.7}}); }
+  if(r.ok){ STATE.data = r.user; renderAll(); confetti({particleCount:30,origin:{y:0.7}}); playEpic(); }
 }
 
-/* =========================================================
-   EFECTOS VISUALES — LEVEL UP / EVOLUCIÓN
-   ========================================================= */
+/* ========== EFECTOS ÉPICOS ========== */
 function showLevelUp(){
   const o = document.getElementById('levelup-overlay');
   o.classList.add('show');
   confetti({particleCount:200,spread:120,origin:{y:0.6}});
-  playDing();
+  playLevelUpSound();
   setTimeout(()=>o.classList.remove('show'), 1600);
 }
 
 function showEvolve(oldBucket, newBucket){
   const o = document.getElementById('evolve-overlay');
-  document.getElementById('evolve-old').src = `./images/char_lvl_${oldBucket}.png`;
+  document.getElementById('evolve-old').src = `./images/char_lvl_${Math.min(100,oldBucket)}.png`;
   document.getElementById('evolve-new').src = `./images/char_lvl_${Math.min(100,newBucket)}.png`;
   o.classList.add('show');
   confetti({particleCount:300,spread:180,origin:{y:0.5}});
+  playLevelUpSound();
 }
 
 function closeEvolve(){ document.getElementById('evolve-overlay').classList.remove('show'); }
 
-/* =========================================================
-   AUTO-LOGIN SI HAY SESIÓN GUARDADA
-   ========================================================= */
+/* ========== AUTO-LOGIN ========== */
 window.addEventListener('DOMContentLoaded', async ()=>{
   const u = sessionStorage.getItem('rpg_user');
   const h = sessionStorage.getItem('rpg_hash');
   if(u&&h){
     STATE.user = u;
-    const r = await postAction('login',{passwordHash:h});
-    if(r.ok) enterApp(r.data);
+    try{
+      const r = await postAction('login',{passwordHash:h});
+      if(r.ok) enterApp(r.data);
+    }catch(e){}
   }
 });
 </script>
