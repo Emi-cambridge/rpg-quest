@@ -1,610 +1,1345 @@
-/* =========================================================
- *  RPG QUEST — BACKEND EN GOOGLE APPS SCRIPT  (v2)
- *  Incluye editor de misiones: updateQuest, deleteQuest, claimQuest
- *
- *  CÓMO USAR:
- *  1) Crea un Google Sheet vacío.
- *  2) Copia el ID (URL entre /d/ y /edit) y pégalo en SHEET_ID.
- *  3) Extensiones → Apps Script → pega TODO este archivo.
- *  4) Guarda. Ejecuta la función `initAllSheets` UNA vez para crear las pestañas.
- *  5) Implementar → Nueva implementación → Aplicación web.
- *     Ejecutar como: tú mismo. Acceso: cualquiera.
- *  6) Copia la URL final y pégala en index.html (CONFIG.APPS_SCRIPT_URL).
- * ========================================================= */
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DBZ Quest — Conviértete en un Guerrero Z</title>
+<!-- =======================================================
+     DBZ QUEST v4 — Temática Dragon Ball Z
+     4 personajes: Goku, Vegeta, Gohan, Piccolo
+     ======================================================= -->
 
-const SHEET_ID = 'PEGA_AQUI_EL_ID_DEL_SHEET';
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Russo+One&family=Press+Start+2P&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
 
-const SHEET_NAMES = {
-  usuarios: 'usuarios', tareas: 'tareas', misiones: 'misiones',
-  jefes: 'jefes', tienda: 'tienda', inventario: 'inventario',
-  logros: 'logros', log: 'log'
+<style>
+/* ========== VARIABLES — PALETA DRAGON BALL Z ========== */
+:root{
+  --bg-1:#0a0820;        /* Espacio profundo */
+  --bg-2:#131329;        /* Paneles */
+  --bg-3:#1c1c3d;        /* Tarjetas */
+  --accent:#ff7a1f;      /* Naranja Goku */
+  --accent-2:#3b85ff;    /* Azul cinturón */
+  --gold:#ffd700;        /* Super Saiyan */
+  --green:#39ff7a;       /* Piccolo */
+  --red:#ff2d4d;
+  --purple:#b14aff;      /* Freezer */
+  --text:#f5f5ff;
+  --muted:#9aa0c0;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+body{
+  font-family:'Russo One', sans-serif;
+  background:
+    radial-gradient(ellipse at top, #1a1a3a 0%, var(--bg-1) 70%),
+    #000;
+  color:var(--text); min-height:100vh; overflow-x:hidden;
+  position:relative;
+}
+/* Cielo estrellado animado */
+body::before{
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+  background-image:
+    radial-gradient(1px 1px at 20px 30px, #fff, transparent),
+    radial-gradient(1px 1px at 60px 100px, #fff, transparent),
+    radial-gradient(1px 1px at 130px 50px, #ffd, transparent),
+    radial-gradient(1px 1px at 200px 200px, #fff, transparent),
+    radial-gradient(2px 2px at 300px 80px, #ffd, transparent),
+    radial-gradient(1px 1px at 400px 150px, #fff, transparent),
+    radial-gradient(1px 1px at 500px 250px, #fff, transparent),
+    radial-gradient(1px 1px at 600px 50px, #fff, transparent),
+    radial-gradient(2px 2px at 700px 180px, #ffd, transparent),
+    radial-gradient(1px 1px at 800px 90px, #fff, transparent);
+  background-size: 900px 300px;
+  opacity:0.5;
+  animation: starsScroll 90s linear infinite;
+}
+@keyframes starsScroll{
+  0%{background-position:0 0;}
+  100%{background-position:900px 300px;}
+}
+button{font-family:inherit;cursor:pointer;border:none;}
+input,select,textarea{font-family:inherit;}
+::-webkit-scrollbar{width:10px;}
+::-webkit-scrollbar-track{background:var(--bg-1);}
+::-webkit-scrollbar-thumb{background:var(--accent);border-radius:5px;}
+
+/* Bola de dragón decorativa */
+.dragon-ball{
+  display:inline-block; width:34px; height:34px; border-radius:50%;
+  background: radial-gradient(circle at 30% 30%, #fff5b0, var(--gold) 50%, #b8860b);
+  box-shadow: 0 0 12px var(--gold), inset -3px -3px 6px rgba(0,0,0,0.3);
+  position:relative; vertical-align:middle; margin-right:10px;
+}
+.dragon-ball::before{
+  content:'★'; position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  color:#c0392b; font-size:18px;
+}
+
+/* ========== LOGIN ========== */
+#login-screen{
+  position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+  background:
+    radial-gradient(ellipse at center, #1a0a2e 0%, #0a0820 70%);
+  z-index:1000;
+}
+.login-box{
+  background:var(--bg-2);padding:40px;border-radius:16px;
+  box-shadow:0 0 40px var(--accent), 0 0 80px rgba(255,122,31,0.3);
+  border:2px solid var(--accent);width:90%;max-width:420px;text-align:center;
+  position:relative; z-index:1;
+}
+.login-title{
+  font-family:'Bangers',cursive;font-size:54px;letter-spacing:4px;
+  color:var(--gold);text-shadow:0 0 10px var(--accent),0 0 20px var(--accent),0 0 30px var(--accent);
+  margin-bottom:8px;
+}
+.login-sub{color:var(--accent);margin-bottom:24px;font-size:13px;letter-spacing:1px;}
+.login-box input{
+  width:100%;padding:14px;margin:8px 0;background:var(--bg-3);
+  border:1px solid #333;border-radius:8px;color:var(--text);font-size:15px;
+}
+.login-box input:focus{outline:none;border-color:var(--accent-2);box-shadow:0 0 10px var(--accent-2);}
+.btn{
+  display:inline-block;padding:12px 24px;border-radius:8px;font-size:14px;
+  letter-spacing:1px;text-transform:uppercase;
+  transition:transform .15s, box-shadow .15s;color:#fff;
+}
+.btn:hover{transform:translateY(-2px);}
+.btn-primary{background:linear-gradient(135deg,var(--accent),#ff3c00);box-shadow:0 0 15px var(--accent);}
+.btn-secondary{background:var(--bg-3);border:1px solid var(--accent-2);color:var(--accent-2);}
+.btn-gold{background:linear-gradient(135deg,var(--gold),#ff8c00);color:#222;font-weight:bold;}
+.btn-row{display:flex;gap:10px;margin-top:14px;}
+.btn-row .btn{flex:1;}
+.login-msg{margin-top:10px;font-size:12px;min-height:18px;color:var(--accent);}
+
+/* ========== SELECCIÓN DE PERSONAJE ========== */
+#character-modal{
+  position:fixed;inset:0;background:rgba(0,0,0,0.92);
+  display:none;align-items:center;justify-content:center;z-index:2500;
+  padding:20px; overflow-y:auto;
+}
+#character-modal.show{display:flex;}
+.char-select-box{
+  background:var(--bg-2); padding:30px; border-radius:18px;
+  border:2px solid var(--gold); box-shadow:0 0 40px var(--gold);
+  max-width:900px; width:100%; text-align:center;
+}
+.char-select-title{
+  font-family:'Bangers',cursive; font-size:42px; letter-spacing:3px;
+  color:var(--gold); text-shadow:0 0 12px var(--accent);
+  margin-bottom:8px;
+}
+.char-select-sub{color:var(--muted);margin-bottom:20px;font-size:13px;}
+.char-grid{
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:14px;
+}
+.char-card{
+  padding:18px; border-radius:14px; cursor:pointer;
+  border:2px solid #333; transition:all .25s;
+  background:var(--bg-3);
+}
+.char-card:hover{transform:translateY(-6px) scale(1.03);}
+.char-card.goku{border-color:var(--accent); box-shadow:0 0 18px rgba(255,122,31,0.5);}
+.char-card.goku:hover{box-shadow:0 0 35px var(--accent);}
+.char-card.vegeta{border-color:var(--accent-2); box-shadow:0 0 18px rgba(59,133,255,0.5);}
+.char-card.vegeta:hover{box-shadow:0 0 35px var(--accent-2);}
+.char-card.gohan{border-color:var(--purple); box-shadow:0 0 18px rgba(177,74,255,0.5);}
+.char-card.gohan:hover{box-shadow:0 0 35px var(--purple);}
+.char-card.piccolo{border-color:var(--green); box-shadow:0 0 18px rgba(57,255,122,0.5);}
+.char-card.piccolo:hover{box-shadow:0 0 35px var(--green);}
+.char-card-emoji{font-size:60px; margin:8px 0;}
+.char-card-name{
+  font-family:'Bangers',cursive; font-size:32px; letter-spacing:2px;
+  color:var(--gold); margin:6px 0;
+}
+.char-card-passive{font-size:11px; color:var(--muted); margin-top:8px;}
+
+/* ========== LAYOUT ========== */
+#app-screen{display:none; position:relative; z-index:1;}
+.app-wrap{display:grid;grid-template-columns:320px 1fr;min-height:100vh;}
+.sidebar{
+  background:var(--bg-2);border-right:2px solid var(--accent);
+  padding:20px;position:sticky;top:0;height:100vh;overflow-y:auto;
+}
+.char-box{text-align:center;}
+
+/* Avatar grande con crossfade */
+.char-img-wrap{
+  position:relative; width:100%; max-width:220px; margin:0 auto;
+  aspect-ratio: 1 / 1;
+}
+.char-img-wrap img{
+  position:absolute; inset:0; width:100%; height:100%; object-fit:contain;
+  filter:drop-shadow(0 0 20px var(--accent));
+  transition: opacity .6s ease;
+  animation:float 4s ease-in-out infinite;
+}
+.char-img-wrap img.fade-out{opacity:0;}
+.char-img-wrap img.fade-in{opacity:1;}
+.char-img-wrap.power-up img{transform:scale(1.15); filter:drop-shadow(0 0 30px var(--gold));}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+
+.char-name{
+  font-family:'Bangers',cursive;font-size:28px;letter-spacing:2px;
+  color:var(--gold);text-shadow:0 0 8px var(--gold);margin-top:8px;
+}
+.char-class{
+  display:inline-block;padding:4px 10px;background:var(--accent);
+  border-radius:12px;font-size:11px;margin-top:6px;
+}
+.level-display{
+  font-family:'Bangers',cursive;font-size:46px;color:var(--gold);
+  text-shadow:0 0 15px var(--gold);margin-top:10px;
+}
+.level-label{font-size:11px;color:var(--muted);letter-spacing:2px;}
+
+.bar{
+  width:100%;height:18px;background:var(--bg-3);border-radius:9px;
+  overflow:hidden;margin:6px 0;border:1px solid #333;position:relative;
+}
+.bar-fill{
+  height:100%;width:0%;transition:width .8s cubic-bezier(.2,.8,.2,1);
+  background:linear-gradient(90deg,var(--gold),var(--accent));box-shadow:0 0 10px var(--accent);
+}
+.bar-fill.hp{background:linear-gradient(90deg,var(--red),#ff6b6b);box-shadow:0 0 10px var(--red);}
+
+.info-row{display:flex;justify-content:space-between;margin:6px 0;font-size:12px;}
+.coins{color:var(--gold);font-size:16px;}
+.streak{color:#ff7a3c;font-size:14px;}
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:12px;}
+.stat{background:var(--bg-3);padding:8px;border-radius:6px;text-align:center;border:1px solid #2a2a4d;}
+.stat-name{font-size:10px;color:var(--muted);letter-spacing:1px;}
+.stat-val{font-size:22px;color:var(--accent);font-family:'Bangers',cursive;}
+
+.pet-box{
+  margin-top:16px;padding:10px;background:var(--bg-3);
+  border-radius:10px;text-align:center;border:1px dashed var(--gold);
+}
+.pet-emoji{font-size:38px;}
+.pet-name{font-size:12px;margin:4px 0;color:var(--gold);}
+.pet-xp{font-size:10px;color:var(--muted);}
+
+/* ========== AVATAR FLOTANTE ========== */
+.floating-avatar{
+  position:fixed; bottom:20px; right:20px;
+  width:90px; height:90px; border-radius:50%;
+  background:var(--bg-2);
+  border:3px solid var(--gold);
+  box-shadow:0 0 20px var(--gold), inset 0 0 12px rgba(255,215,0,0.3);
+  overflow:hidden; cursor:pointer;
+  z-index:500;
+  transition: transform .3s, opacity .4s, bottom .3s;
+  animation: floatMini 3s ease-in-out infinite;
+}
+.floating-avatar:hover{transform:scale(1.1);}
+.floating-avatar.hidden{opacity:0;pointer-events:none;transform:scale(0.5);}
+.floating-avatar img{
+  position:absolute; inset:0; width:100%; height:100%; object-fit:contain;
+  transition:opacity .6s ease;
+}
+.floating-avatar img.fade-out{opacity:0;}
+.floating-avatar img.fade-in{opacity:1;}
+.floating-avatar .lvl-badge{
+  position:absolute; bottom:-2px; right:-2px;
+  background:var(--accent); color:#fff; font-family:'Bangers',cursive;
+  font-size:14px; padding:2px 8px; border-radius:12px;
+  border:2px solid var(--bg-1);
+  letter-spacing:1px;
+  z-index:2;
+}
+@keyframes floatMini{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+
+.floating-avatar.burning{
+  border-color:#ff7a3c;
+  box-shadow:0 0 30px #ff7a3c, 0 0 60px rgba(255,122,60,0.6);
+  animation: floatMini 3s infinite, burnPulse 1.2s ease-in-out infinite;
+}
+@keyframes burnPulse{
+  0%,100%{box-shadow:0 0 25px #ff7a3c, 0 0 50px rgba(255,122,60,0.5);}
+  50%{box-shadow:0 0 40px #ff4500, 0 0 80px rgba(255,69,0,0.8);}
+}
+.fire-emoji{
+  position:absolute; font-size:22px;
+  animation: fireOrbit 3s linear infinite;
+  pointer-events:none; z-index:3;
+}
+.fire-emoji.f1{animation-delay:0s;}
+.fire-emoji.f2{animation-delay:-1s;}
+.fire-emoji.f3{animation-delay:-2s;}
+@keyframes fireOrbit{
+  0%  {transform: rotate(0deg)   translateX(55px) rotate(0deg);}
+  100%{transform: rotate(360deg) translateX(55px) rotate(-360deg);}
+}
+
+.floating-avatar.wounded{
+  border-color:var(--red);
+  box-shadow:0 0 25px var(--red);
+  animation: floatMini 3s infinite, shake 0.4s infinite;
+}
+@keyframes shake{
+  0%,100%{margin-left:0;}
+  25%{margin-left:-4px;}
+  75%{margin-left:4px;}
+}
+
+.floating-avatar.flash{
+  animation: floatMini 3s infinite, goldFlash 1s ease;
+}
+@keyframes goldFlash{
+  0%{box-shadow:0 0 20px var(--gold);}
+  50%{box-shadow:0 0 80px var(--gold), 0 0 120px white;}
+  100%{box-shadow:0 0 20px var(--gold);}
+}
+
+/* ========== CONTENIDO ========== */
+.main{padding:18px 28px;overflow-y:auto;}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;border-bottom:2px solid var(--accent);margin-bottom:18px;}
+.tab-btn{
+  background:var(--bg-3);color:var(--muted);padding:10px 18px;
+  border-radius:8px 8px 0 0;font-size:13px;letter-spacing:1px;
+  text-transform:uppercase;transition:all .2s;
+}
+.tab-btn:hover{color:var(--text);}
+.tab-btn.active{background:var(--accent);color:#fff;box-shadow:0 -2px 10px var(--accent);}
+.tab-content{display:none;animation:fadeIn .3s ease;}
+.tab-content.active{display:block;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+
+.section-title{
+  font-family:'Bangers',cursive;font-size:32px;letter-spacing:2px;
+  color:var(--accent);text-shadow:0 0 8px var(--accent);margin-bottom:14px;
+}
+
+.task-form{
+  display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:8px;margin-bottom:18px;
+  background:var(--bg-2);padding:12px;border-radius:10px;border:1px solid #2a2a4d;
+}
+.task-form input,.task-form select{
+  padding:10px;background:var(--bg-3);color:var(--text);
+  border:1px solid #333;border-radius:6px;
+}
+.task-group-title{
+  font-family:'Bangers',cursive;font-size:22px;color:var(--gold);
+  margin:14px 0 6px;letter-spacing:1px;
+}
+.task-list{display:flex;flex-direction:column;gap:8px;}
+.task-card{
+  background:var(--bg-2);border:1px solid #2a2a4d;border-left:5px solid var(--accent);
+  padding:12px 14px;border-radius:8px;display:flex;align-items:center;
+  justify-content:space-between;transition:transform .15s;
+}
+.task-card:hover{transform:translateX(4px);}
+.task-card.overdue{
+  border-left-color:var(--red);background:rgba(255,45,77,0.05);
+  animation:pulse-red 2s infinite;
+}
+@keyframes pulse-red{0%,100%{box-shadow:0 0 0 rgba(255,45,77,0);}50%{box-shadow:0 0 15px rgba(255,45,77,0.4);}}
+.task-card.dificultad-facil{border-left-color:#39ff7a;}
+.task-card.dificultad-medio{border-left-color:#00e5ff;}
+.task-card.dificultad-dificil{border-left-color:#ff7a3c;}
+.task-card.dificultad-epico{border-left-color:var(--gold);box-shadow:0 0 8px rgba(255,215,0,0.3);}
+.task-info{flex:1;}
+.task-name{font-size:15px;}
+.task-meta{font-size:11px;color:var(--muted);margin-top:4px;}
+.task-actions{display:flex;gap:6px;}
+.icon-btn{
+  width:36px;height:36px;border-radius:50%;background:var(--bg-3);color:var(--text);
+  display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .2s;
+}
+.icon-btn.done{background:var(--gold);color:#000;}
+.icon-btn.done:hover{box-shadow:0 0 15px var(--gold);}
+.icon-btn.delete{background:var(--red);}
+.icon-btn.delete:hover{box-shadow:0 0 15px var(--red);}
+
+/* Misiones */
+.quest-form{
+  display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;margin-bottom:18px;
+  background:var(--bg-2);padding:14px;border-radius:10px;border:1px solid var(--accent-2);
+}
+.quest-form .full{grid-column:1 / -1;}
+.quest-form input,.quest-form textarea{
+  padding:10px;background:var(--bg-3);color:var(--text);
+  border:1px solid #333;border-radius:6px;font-size:14px;font-family:inherit;
+}
+.quest-form textarea{min-height:60px;resize:vertical;}
+.quest-card{
+  background:var(--bg-2);padding:14px;border-radius:10px;
+  margin-bottom:10px;border:1px solid var(--accent-2);transition:all .25s;
+}
+.quest-card.complete{border-color:var(--gold);box-shadow:0 0 18px var(--gold);}
+.quest-title{font-size:18px;color:var(--accent-2);}
+.quest-desc{font-size:12px;color:var(--muted);margin:6px 0;}
+.quest-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+.badge-complete{
+  display:inline-block;background:var(--gold);color:#222;padding:3px 10px;
+  border-radius:12px;font-size:11px;letter-spacing:1px;margin-left:8px;
+}
+
+/* Jefe */
+.boss-panel{
+  background:linear-gradient(135deg,#2a0a14,#1a0033);padding:24px;
+  border-radius:14px;border:2px solid var(--red);
+  box-shadow:0 0 30px rgba(255,45,77,0.3);text-align:center;
+}
+.boss-emoji{font-size:120px;filter:drop-shadow(0 0 20px var(--red));}
+.boss-name{
+  font-family:'Bangers',cursive;font-size:42px;color:var(--red);
+  letter-spacing:3px;text-shadow:0 0 12px var(--red);
+}
+.boss-hp{max-width:500px;margin:14px auto;}
+.boss-log{margin-top:14px;font-size:12px;color:var(--muted);}
+
+/* Tienda */
+.shop-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;}
+.shop-item{
+  background:var(--bg-2);padding:14px;border-radius:10px;text-align:center;
+  border:2px solid #333;transition:all .2s;
+}
+.shop-item:hover{transform:translateY(-4px);}
+.shop-item.comun{border-color:#888;}
+.shop-item.raro{border-color:#4af;box-shadow:0 0 10px rgba(68,170,255,0.3);}
+.shop-item.epico{border-color:var(--purple);box-shadow:0 0 12px rgba(177,74,255,0.4);}
+.shop-item.legendario{border-color:var(--gold);box-shadow:0 0 18px rgba(255,215,0,0.5);}
+.shop-emoji{font-size:48px;margin:8px 0;}
+.shop-name{font-size:14px;margin-bottom:4px;}
+.shop-rarity{font-size:10px;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
+.shop-price{color:var(--gold);font-size:16px;margin-bottom:10px;}
+
+/* Inventario */
+.inv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;}
+.inv-item{
+  background:var(--bg-2);padding:10px;border-radius:8px;text-align:center;
+  border:1px solid #333;cursor:pointer;
+}
+.inv-item.equipped{border-color:var(--gold);box-shadow:0 0 12px var(--gold);}
+
+/* Logros */
+.ach-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;}
+.ach-card{
+  background:var(--bg-2);padding:14px;border-radius:10px;text-align:center;
+  border:1px solid #2a2a4d;transition:all .2s;
+}
+.ach-card.unlocked{border-color:var(--gold);box-shadow:0 0 12px var(--gold);}
+.ach-card.locked{filter:grayscale(1) opacity(0.4);}
+.ach-emoji{font-size:42px;}
+.ach-name{font-size:13px;margin-top:6px;}
+.ach-desc{font-size:10px;color:var(--muted);margin-top:4px;}
+
+/* Ranking */
+.ranking-table{width:100%;border-collapse:collapse;background:var(--bg-2);border-radius:10px;overflow:hidden;}
+.ranking-table th,.ranking-table td{padding:10px;text-align:left;border-bottom:1px solid #2a2a4d;font-size:13px;}
+.ranking-table th{background:var(--bg-3);color:var(--accent);letter-spacing:1px;}
+.ranking-table tr.me{background:rgba(255,215,0,0.1);}
+
+/* Overlays */
+.levelup-overlay{
+  position:fixed;inset:0;background:rgba(255,215,0,0.0);display:none;
+  align-items:center;justify-content:center;z-index:3000;pointer-events:none;
+}
+.levelup-overlay.show{display:flex;animation:flash 1.5s ease;}
+@keyframes flash{
+  0%{background:rgba(255,215,0,0);}
+  20%{background:rgba(255,255,255,0.95);}
+  100%{background:rgba(255,215,0,0);}
+}
+.levelup-text{
+  font-family:'Bangers',cursive;font-size:120px;letter-spacing:5px;color:var(--gold);
+  text-shadow:0 0 30px var(--accent),0 0 60px var(--accent);animation:zoom 1.5s ease;
+}
+@keyframes zoom{
+  0%{transform:scale(0.2);opacity:0;}
+  40%{transform:scale(1.3);opacity:1;}
+  100%{transform:scale(1);opacity:0;}
+}
+
+.evolve-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,0.92);display:none;
+  align-items:center;justify-content:center;z-index:3500;flex-direction:column;
+}
+.evolve-overlay.show{display:flex;}
+.evolve-title{
+  font-family:'Bangers',cursive;font-size:60px;color:var(--accent);
+  text-shadow:0 0 20px var(--accent);margin-bottom:20px;letter-spacing:3px;
+}
+.evolve-images{display:flex;gap:30px;align-items:center;}
+.evolve-images img{width:200px;filter:drop-shadow(0 0 20px var(--gold));}
+.evolve-arrow{font-size:60px;color:var(--gold);animation:pulse 1s infinite;}
+@keyframes pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.3);}}
+
+.top-actions{position:fixed;top:14px;right:18px;display:flex;gap:8px;z-index:600;}
+.top-actions .icon-btn{background:var(--bg-3);}
+
+/* Responsive */
+@media (max-width:800px){
+  .app-wrap{grid-template-columns:1fr;}
+  .sidebar{position:relative;height:auto;border-right:none;border-bottom:2px solid var(--accent);}
+  .char-img-wrap{max-width:140px;}
+  .task-form{grid-template-columns:1fr 1fr;}
+  .quest-form{grid-template-columns:1fr 1fr;}
+  .level-display{font-size:36px;}
+  .floating-avatar{width:70px;height:70px;bottom:14px;left:14px;right:auto;}
+  .fire-emoji{font-size:16px;}
+  @keyframes fireOrbit{
+    0%  {transform: rotate(0deg)   translateX(42px) rotate(0deg);}
+    100%{transform: rotate(360deg) translateX(42px) rotate(-360deg);}
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- ========== LOGIN ========== -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-title"><span class="dragon-ball"></span>DBZ QUEST</div>
+    <div class="login-sub">⚡ ¡Sobre 9000! Conviértete en un Guerrero Z ⚡</div>
+    <input id="login-user" type="text" placeholder="Nombre de guerrero" autocomplete="username" />
+    <input id="login-pass" type="password" placeholder="Contraseña secreta" autocomplete="current-password" />
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="doLogin()">Entrar</button>
+      <button class="btn btn-secondary" onclick="doRegister()">Registrarse</button>
+    </div>
+    <div class="login-msg" id="login-msg"></div>
+  </div>
+</div>
+
+<!-- ========== SELECCIÓN DE PERSONAJE ========== -->
+<div id="character-modal">
+  <div class="char-select-box">
+    <div class="char-select-title">⚔️ ¡Elige tu Guerrero Z! ⚔️</div>
+    <div class="char-select-sub">Cada guerrero tiene una habilidad pasiva única. Esta elección es permanente.</div>
+    <div class="char-grid">
+      <div class="char-card goku" onclick="choosePersonaje('goku')">
+        <div class="char-card-emoji">🥋</div>
+        <div class="char-card-name">Goku</div>
+        <div class="char-card-passive">+20% EXP en tareas de KI<br><i>(entrenamiento)</i></div>
+      </div>
+      <div class="char-card vegeta" onclick="choosePersonaje('vegeta')">
+        <div class="char-card-emoji">👑</div>
+        <div class="char-card-name">Vegeta</div>
+        <div class="char-card-passive">+15% EXP en KI<br>+10% monedas extra</div>
+      </div>
+      <div class="char-card gohan" onclick="choosePersonaje('gohan')">
+        <div class="char-card-emoji">📚</div>
+        <div class="char-card-name">Gohan</div>
+        <div class="char-card-passive">+20% EXP en tareas de TÉC<br><i>(estudio)</i></div>
+      </div>
+      <div class="char-card piccolo" onclick="choosePersonaje('piccolo')">
+        <div class="char-card-emoji">🟢</div>
+        <div class="char-card-name">Piccolo</div>
+        <div class="char-card-passive">+5 HP al día<br><i>(regeneración Namekiana)</i></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== APP ========== -->
+<div id="app-screen">
+  <div class="top-actions">
+    <button class="icon-btn" id="sound-btn" onclick="toggleSound()" title="Sonido">🔊</button>
+    <button class="icon-btn delete" onclick="doLogout()" title="Salir">🚪</button>
+  </div>
+
+  <div class="app-wrap">
+    <aside class="sidebar">
+      <div class="char-box">
+        <div class="char-img-wrap" id="char-img-wrap">
+          <img id="char-img-a" class="fade-in"  src="" alt="Guerrero A" />
+          <img id="char-img-b" class="fade-out" src="" alt="Guerrero B" />
+        </div>
+        <div class="char-name" id="char-name">Guerrero</div>
+        <div class="char-class" id="char-class">Saiyan</div>
+        <div class="level-label">NIVEL DE PODER</div>
+        <div class="level-display" id="level-display">1</div>
+
+        <div class="info-row"><span>EXP</span><span id="xp-text">0 / 100</span></div>
+        <div class="bar"><div class="bar-fill" id="xp-bar"></div></div>
+
+        <div class="info-row"><span>HP ❤️</span><span id="hp-text">50 / 50</span></div>
+        <div class="bar"><div class="bar-fill hp" id="hp-bar"></div></div>
+
+        <div class="info-row">
+          <span class="coins">💰 <span id="coins">0</span></span>
+          <span class="streak">🔥 <span id="streak">0</span> días</span>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat"><div class="stat-name">KI</div><div class="stat-val" id="stat-ki">5</div></div>
+          <div class="stat"><div class="stat-name">TÉC</div><div class="stat-val" id="stat-tec">5</div></div>
+          <div class="stat"><div class="stat-name">RES</div><div class="stat-val" id="stat-res">5</div></div>
+          <div class="stat"><div class="stat-name">ESP</div><div class="stat-val" id="stat-esp">5</div></div>
+        </div>
+
+        <div class="pet-box">
+          <div class="pet-emoji" id="pet-emoji">🥚</div>
+          <div class="pet-name" id="pet-name">Huevo de Dragón</div>
+          <div class="pet-xp" id="pet-xp">XP: 0</div>
+          <button class="btn btn-gold" style="margin-top:6px;font-size:11px;padding:6px 12px;" onclick="feedPet()">Alimentar (10💰)</button>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <nav class="tabs">
+        <button class="tab-btn active" data-tab="tareas" onclick="showTab('tareas')">📋 Entrenamiento</button>
+        <button class="tab-btn" data-tab="misiones" onclick="showTab('misiones')">🗺️ Misiones</button>
+        <button class="tab-btn" data-tab="jefe" onclick="showTab('jefe')">👹 Villano</button>
+        <button class="tab-btn" data-tab="tienda" onclick="showTab('tienda')">🛒 Bazar Capsule</button>
+        <button class="tab-btn" data-tab="inventario" onclick="showTab('inventario')">🎒 Inventario</button>
+        <button class="tab-btn" data-tab="logros" onclick="showTab('logros')">🏆 Logros</button>
+        <button class="tab-btn" data-tab="ranking" onclick="showTab('ranking')">📊 Torneo</button>
+      </nav>
+
+      <!-- TAREAS -->
+      <section class="tab-content active" id="tab-tareas">
+        <div class="section-title">⚡ Tu Entrenamiento Diario</div>
+        <form class="task-form" onsubmit="addTask(event)">
+          <input id="t-name" type="text" placeholder="Nombre de la tarea (ej. Hacer 100 abdominales)" required />
+          <select id="t-type">
+            <option value="habito">Hábito</option>
+            <option value="diaria">Diaria</option>
+            <option value="mision">Tarea de Misión</option>
+          </select>
+          <select id="t-diff">
+            <option value="facil">Fácil (+10 EXP)</option>
+            <option value="medio" selected>Medio (+25 EXP)</option>
+            <option value="dificil">Difícil (+50 EXP)</option>
+            <option value="epico">Épico (+100 EXP)</option>
+          </select>
+          <select id="t-stat">
+            <option value="ki">💥 KI / Combate</option>
+            <option value="tec">🧠 TÉC / Estudio</option>
+            <option value="res">🛡️ RES / Salud</option>
+            <option value="esp">✨ ESP / Espíritu</option>
+          </select>
+          <button type="submit" class="btn btn-primary">➕</button>
+        </form>
+        <div><div class="task-group-title">⚡ Hábitos</div><div class="task-list" id="list-habito"></div></div>
+        <div><div class="task-group-title">📅 Diarias</div><div class="task-list" id="list-diaria"></div></div>
+        <div><div class="task-group-title">🎯 Tareas de Misión</div><div class="task-list" id="list-mision"></div></div>
+      </section>
+
+      <!-- MISIONES -->
+      <section class="tab-content" id="tab-misiones">
+        <div class="section-title">🗺️ Misiones Épicas</div>
+        <form class="quest-form" onsubmit="addQuestForm(event)">
+          <input class="full" id="q-title" type="text" placeholder="Título de la misión (ej. Buscar las 7 Bolas de Dragón)" required />
+          <textarea class="full" id="q-desc" placeholder="Descripción / objetivo de la misión"></textarea>
+          <input id="q-obj" type="number" min="1" value="5" title="Número de pasos" />
+          <input id="q-xp" type="number" min="0" value="100" title="Recompensa EXP" />
+          <input id="q-coins" type="number" min="0" value="50" title="Recompensa monedas" />
+          <button type="submit" class="btn btn-primary">➕ Añadir Misión</button>
+        </form>
+        <div id="quests-list"></div>
+      </section>
+
+      <!-- JEFE -->
+      <section class="tab-content" id="tab-jefe">
+        <div class="section-title">👹 Villano Semanal</div>
+        <div class="boss-panel" id="boss-panel">
+          <div class="boss-emoji" id="boss-emoji">👹</div>
+          <div class="boss-name" id="boss-name">Cargando...</div>
+          <div class="boss-hp">
+            <div class="bar" style="height:26px;"><div class="bar-fill hp" id="boss-hp-bar"></div></div>
+            <div id="boss-hp-text">- / -</div>
+          </div>
+          <div style="color:var(--muted);font-size:13px;margin-top:8px;">
+            💡 Cada tarea completada lanza un Kamehameha automáticamente al villano.
+          </div>
+          <div class="boss-log" id="boss-log"></div>
+        </div>
+      </section>
+
+      <!-- TIENDA -->
+      <section class="tab-content" id="tab-tienda">
+        <div class="section-title">🛒 Bazar de la Corporación Capsule</div>
+        <div class="shop-grid" id="shop-grid"></div>
+      </section>
+
+      <!-- INVENTARIO -->
+      <section class="tab-content" id="tab-inventario">
+        <div class="section-title">🎒 Tu Inventario</div>
+        <div class="inv-grid" id="inv-grid"></div>
+      </section>
+
+      <!-- LOGROS -->
+      <section class="tab-content" id="tab-logros">
+        <div class="section-title">🏆 Salón de Leyendas</div>
+        <div class="ach-grid" id="ach-grid"></div>
+      </section>
+
+      <!-- RANKING -->
+      <section class="tab-content" id="tab-ranking">
+        <div class="section-title">📊 Torneo del Universo</div>
+        <table class="ranking-table">
+          <thead><tr><th>#</th><th>Guerrero</th><th>Nivel</th><th>EXP</th><th>Personaje</th><th>Racha</th></tr></thead>
+          <tbody id="ranking-body"></tbody>
+        </table>
+      </section>
+    </main>
+  </div>
+</div>
+
+<!-- Avatar flotante -->
+<div class="floating-avatar" id="floating-avatar" onclick="petCharacter()" title="¡Carga tu Ki!">
+  <img id="mini-img-a" class="fade-in"  src="" alt="" />
+  <img id="mini-img-b" class="fade-out" src="" alt="" />
+  <span class="fire-emoji f1" style="display:none;">🔥</span>
+  <span class="fire-emoji f2" style="display:none;">🔥</span>
+  <span class="fire-emoji f3" style="display:none;">🔥</span>
+  <div class="lvl-badge" id="mini-lvl">1</div>
+</div>
+
+<div class="levelup-overlay" id="levelup-overlay">
+  <div class="levelup-text">¡NIVEL UP!</div>
+</div>
+
+<div class="evolve-overlay" id="evolve-overlay">
+  <div class="evolve-title">✨ ¡NUEVA TRANSFORMACIÓN! ✨</div>
+  <div class="evolve-images">
+    <img id="evolve-old" src="" />
+    <div class="evolve-arrow">➡️</div>
+    <img id="evolve-new" src="" />
+  </div>
+  <button class="btn btn-gold" style="margin-top:20px;" onclick="closeEvolve()">¡Continuar!</button>
+</div>
+
+<script>
+/* ========== CONFIGURACIÓN ========== */
+const CONFIG = {
+  APPS_SCRIPT_URL: 'PEGA_AQUI_LA_URL_DE_TU_APPS_SCRIPT',
+  SOUND_ON: true,
+  AVATAR_ROTATE_MS: 700
 };
 
-const HEADERS = {
-  usuarios: ['usuario','hash_password','nivel','xp','monedas','hp','hp_max','clase',
-            'stat_str','stat_int','stat_con','stat_cha','racha','ultimo_login',
-            'mascota_nombre','mascota_nivel','mascota_xp','fecha_creacion'],
-  tareas: ['id','usuario','tipo','nombre','descripcion','dificultad','stat_afectado',
-           'completada','ultima_completada','fecha_vencimiento'],
-  misiones: ['id','usuario','titulo','descripcion','progreso','objetivo',
-             'recompensa_xp','recompensa_monedas','estado'],
-  jefes: ['id','usuario','semana','nombre','hp_actual','hp_max','recompensa','derrotado'],
-  tienda: ['id','nombre','tipo','rareza','precio','imagen'],
-  inventario: ['id','usuario','item_id','nombre','imagen','equipado'],
-  logros: ['id','usuario','logro_id','fecha_desbloqueo'],
-  log: ['timestamp','usuario','accion','detalles']
+const PERSONAJE_LABELS = {
+  goku: 'Saiyan (Goku)',
+  vegeta: 'Príncipe Saiyan (Vegeta)',
+  gohan: 'Híbrido Saiyan (Gohan)',
+  piccolo: 'Namekiano (Piccolo)'
 };
 
-const DIFFICULTY_XP = { facil:10, medio:25, dificil:50, epico:100 };
+const PET_STAGES = ['🥚','🐣','🐉','🐲','🌟'];
+const PET_NAMES = ['Huevo de Dragón','Dragoncito','Dragón Joven','Gran Dragón','Shenron'];
 
-const BOSS_NAMES = ['Dragón Oscuro','Demonio de Sombras','Coloso de Hierro',
-                    'Hechicero Maldito','Bestia Cósmica'];
+let STATE = {
+  user:null, data:null, tasks:[], quests:[], boss:null,
+  shop:[], inventory:[], achievements:[], ranking:[]
+};
 
-const SHOP_ITEMS = [
-  {id:'i01', nombre:'Espada de Madera',  tipo:'arma',     rareza:'comun',      precio:30,  imagen:'🗡️'},
-  {id:'i02', nombre:'Escudo de Cuero',   tipo:'escudo',   rareza:'comun',      precio:40,  imagen:'🛡️'},
-  {id:'i03', nombre:'Casco de Acero',    tipo:'casco',    rareza:'raro',       precio:120, imagen:'⛑️'},
-  {id:'i04', nombre:'Capa Mística',      tipo:'capa',     rareza:'raro',       precio:150, imagen:'🧣'},
-  {id:'i05', nombre:'Bastón Arcano',     tipo:'arma',     rareza:'epico',      precio:350, imagen:'🪄'},
-  {id:'i06', nombre:'Armadura Dragón',   tipo:'armadura', rareza:'epico',      precio:500, imagen:'🐲'},
-  {id:'i07', nombre:'Espada Legendaria', tipo:'arma',     rareza:'legendario', precio:1200,imagen:'⚔️'},
-  {id:'i08', nombre:'Corona Real',       tipo:'casco',    rareza:'legendario', precio:1500,imagen:'👑'},
-  {id:'i09', nombre:'Poción de Vida',    tipo:'consumible',rareza:'comun',     precio:25,  imagen:'🧪'},
-  {id:'i10', nombre:'Anillo de Poder',   tipo:'anillo',   rareza:'epico',      precio:400, imagen:'💍'},
-  {id:'i11', nombre:'Bola de Cristal',   tipo:'accesorio',rareza:'raro',       precio:180, imagen:'🔮'},
-  {id:'i12', nombre:'Llave Cósmica',     tipo:'accesorio',rareza:'legendario', precio:2000,imagen:'🗝️'}
-];
-
-const ACHIEVEMENTS = [
-  {id:'madrugador',    nombre:'Madrugador',       descripcion:'Completa una tarea antes de las 9:00', emoji:'🌅'},
-  {id:'tareas_100',    nombre:'Centenario',       descripcion:'Completa 100 tareas en total',          emoji:'💯'},
-  {id:'nivel_50',      nombre:'Veterano',         descripcion:'Alcanza el nivel 50',                   emoji:'🏅'},
-  {id:'racha_7',       nombre:'Constante',        descripcion:'Mantén una racha de 7 días',            emoji:'🔥'},
-  {id:'racha_30',      nombre:'Imparable',        descripcion:'Mantén una racha de 30 días',           emoji:'⚡'},
-  {id:'primer_jefe',   nombre:'Cazador de Jefes', descripcion:'Derrota a tu primer jefe semanal',      emoji:'🐉'},
-  {id:'coleccionista', nombre:'Coleccionista',    descripcion:'Posee 5 objetos en tu inventario',      emoji:'🎒'},
-  {id:'maestro_clase', nombre:'Maestro de Clase', descripcion:'Elige una clase de personaje',          emoji:'🎓'}
-];
-
-/* ========== ENTRADAS HTTP ========== */
-function doGet(e){
-  return jsonResponse({ok:true, msg:'API RPG Quest funcionando ⚔️'});
+/* ========== UTILIDADES ========== */
+async function sha256(text){
+  const buf = new TextEncoder().encode(text);
+  const hash = await crypto.subtle.digest('SHA-256', buf);
+  return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
 
-function doPost(e){
-  try{
-    const body = JSON.parse(e.postData.contents);
-    const action = body.action;
-    const user = body.user;
-    const p = body.payload || {};
-    let r;
-    switch(action){
-      case 'login':           r = login(user, p.passwordHash); break;
-      case 'register':        r = register(user, p.passwordHash); break;
-      case 'getUserData':     r = {ok:true, data: getUserData(user)}; break;
-      case 'getTasks':        r = {ok:true, data: getTasks(user)}; break;
-      case 'addTask':         r = {ok:true, data: addTask(user, p.task)}; break;
-      case 'completeTask':    r = completeTask(user, p.taskId); break;
-      case 'deleteTask':      r = {ok:true, data: deleteTask(user, p.taskId)}; break;
-      case 'getQuests':       r = {ok:true, data: getQuests(user)}; break;
-      case 'addQuest':        r = {ok:true, data: addQuest(user, p.quest)}; break;
-      case 'updateQuest':     r = {ok:true, data: updateQuest(user, p.questId, p.delta||1)}; break;
-      case 'deleteQuest':     r = {ok:true, data: deleteQuestRow(user, p.questId)}; break;
-      case 'claimQuest':      r = claimQuest(user, p.questId); break;
-      case 'getBoss':         r = {ok:true, data: getBoss(user)}; break;
-      case 'getShop':         r = {ok:true, data: SHOP_ITEMS}; break;
-      case 'buyItem':         r = buyItem(user, p.itemId); break;
-      case 'getInventory':    r = {ok:true, data: getInventory(user)}; break;
-      case 'equipItem':       r = {ok:true, data: equipItem(user, p.invId)}; break;
-      case 'getAchievements': r = {ok:true, data: getAchievements(user)}; break;
-      case 'getRanking':      r = {ok:true, data: getRanking()}; break;
-      case 'chooseClass':     r = chooseClass(user, p.clase); break;
-      case 'feedPet':         r = feedPet(user, p.coins); break;
-      case 'dailyRollover':   r = {ok:true, data: dailyRollover(user)}; break;
-      default: r = {ok:false, error:'Acción desconocida: '+action};
-    }
-    return jsonResponse(r);
-  }catch(err){
-    return jsonResponse({ok:false, error:String(err)});
+async function postAction(action, payload={}){
+  if(!CONFIG.APPS_SCRIPT_URL || CONFIG.APPS_SCRIPT_URL.startsWith('PEGA_AQUI')){
+    alert('⚠️ Debes configurar CONFIG.APPS_SCRIPT_URL en index.html');
+    throw new Error('URL no configurada');
   }
-}
-
-function jsonResponse(obj){
-  return ContentService.createTextOutput(JSON.stringify(obj))
-    .setMimeType(ContentService.MimeType.JSON);
-}
-
-/* ========== UTILIDADES DE HOJAS ========== */
-function ss(){ return SpreadsheetApp.openById(SHEET_ID); }
-
-function sheet(name){
-  const s = ss();
-  let sh = s.getSheetByName(name);
-  if(!sh){
-    sh = s.insertSheet(name);
-    const h = HEADERS[name];
-    if(h) sh.getRange(1,1,1,h.length).setValues([h]).setFontWeight('bold');
-  }
-  return sh;
-}
-
-// Ejecuta esto UNA vez desde el editor para crear todas las pestañas
-function initAllSheets(){
-  for(const k in SHEET_NAMES) sheet(SHEET_NAMES[k]);
-  Logger.log('✅ Todas las pestañas creadas correctamente');
-}
-
-function rowToObj(row, headers){
-  const o = {};
-  headers.forEach((h,i)=> o[h] = row[i]);
-  return o;
-}
-function objToRow(obj, headers){
-  return headers.map(h => obj[h] !== undefined ? obj[h] : '');
-}
-
-function sha256(text){
-  const bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, text, Utilities.Charset.UTF_8);
-  return bytes.map(b => ('0' + (b & 0xff).toString(16)).slice(-2)).join('');
-}
-function todayStr(){
-  return Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
-}
-function currentWeek(){
-  const d = new Date();
-  const onejan = new Date(d.getFullYear(),0,1);
-  const week = Math.ceil((((d - onejan) / 86400000) + onejan.getDay()+1)/7);
-  return d.getFullYear() + '-W' + week;
-}
-
-function getUserRow(user){
-  const sh = sheet(SHEET_NAMES.usuarios);
-  const data = sh.getDataRange().getValues();
-  const headers = data[0];
-  for(let i=1;i<data.length;i++){
-    if(data[i][0] === user){
-      return {row:i+1, obj: rowToObj(data[i], headers), headers};
-    }
-  }
-  return null;
-}
-
-function saveUser(rowIdx, obj){
-  const sh = sheet(SHEET_NAMES.usuarios);
-  const h = HEADERS.usuarios;
-  sh.getRange(rowIdx,1,1,h.length).setValues([objToRow(obj,h)]);
+  const body = JSON.stringify({action, payload, user: STATE.user});
+  const res = await fetch(CONFIG.APPS_SCRIPT_URL, {
+    method:'POST', body,
+    headers:{'Content-Type':'text/plain;charset=utf-8'}
+  });
+  return await res.json();
 }
 
 function xpNeeded(level){ return Math.round(100 * Math.pow(level, 1.5)); }
 
-function logAction(user, accion, detalles){
-  sheet(SHEET_NAMES.log).appendRow([new Date(), user, accion, JSON.stringify(detalles||{})]);
+// Ruta de imagen según personaje, nivel y ángulo
+function charImagePath(level, frame){
+  const bucket = Math.min(100, Math.max(10, Math.ceil(level/10)*10));
+  const f = ((frame-1)%4 + 4)%4 + 1;
+  const p = (STATE.data && STATE.data.personaje) || 'goku';
+  return `./images/${p}/lvl_${bucket}_${f}.png`;
 }
 
-// Sube de nivel iterativamente si el usuario tiene XP suficiente
-function applyLevelUp(uo){
-  let leveledUp = false;
-  while(uo.nivel < 100 && uo.xp >= xpNeeded(uo.nivel)){
-    uo.xp -= xpNeeded(uo.nivel);
-    uo.nivel++;
-    uo.hp_max += 5;
-    uo.hp = uo.hp_max;
-    leveledUp = true;
-  }
-  return leveledUp;
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* ========== SONIDOS ÉPICOS ========== */
+function playEpic(){
+  if(!CONFIG.SOUND_ON) return;
+  try{
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    const notes = [523.25, 659.25, 783.99];
+    notes.forEach((freq, i) => {
+      const o1 = ctx.createOscillator();
+      const o2 = ctx.createOscillator();
+      const g  = ctx.createGain();
+      o1.type='square'; o2.type='triangle';
+      o1.frequency.value = freq;
+      o2.frequency.value = freq*2;
+      o1.connect(g); o2.connect(g); g.connect(ctx.destination);
+      const start = ctx.currentTime + i*0.06;
+      g.gain.setValueAtTime(0.0001, start);
+      g.gain.exponentialRampToValueAtTime(0.15, start+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, start+0.8);
+      o1.start(start); o2.start(start);
+      o1.stop(start+0.85); o2.stop(start+0.85);
+    });
+    const sp = ctx.createOscillator(), sg = ctx.createGain();
+    sp.type='sine'; sp.frequency.value = 1568;
+    sp.connect(sg); sg.connect(ctx.destination);
+    const sStart = ctx.currentTime + 0.25;
+    sg.gain.setValueAtTime(0.0001, sStart);
+    sg.gain.exponentialRampToValueAtTime(0.08, sStart+0.02);
+    sg.gain.exponentialRampToValueAtTime(0.0001, sStart+0.6);
+    sp.start(sStart); sp.stop(sStart+0.65);
+  }catch(e){}
 }
+
+function playLevelUpSound(){
+  if(!CONFIG.SOUND_ON) return;
+  try{
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    const notes = [523.25, 659.25, 783.99, 1046.50, 783.99, 1046.50];
+    notes.forEach((freq, i) => {
+      const o = ctx.createOscillator();
+      const o2 = ctx.createOscillator();
+      const g  = ctx.createGain();
+      o.type='square'; o2.type='triangle';
+      o.frequency.value = freq;
+      o2.frequency.value = freq*0.5;
+      o.connect(g); o2.connect(g); g.connect(ctx.destination);
+      const start = ctx.currentTime + i*0.18;
+      g.gain.setValueAtTime(0.0001, start);
+      g.gain.exponentialRampToValueAtTime(0.18, start+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, start+0.28);
+      o.start(start); o2.start(start);
+      o.stop(start+0.3); o2.stop(start+0.3);
+    });
+  }catch(e){}
+}
+
+function toggleSound(){
+  CONFIG.SOUND_ON = !CONFIG.SOUND_ON;
+  document.getElementById('sound-btn').textContent = CONFIG.SOUND_ON ? '🔊' : '🔇';
+}
+
+/* ========== AVATAR ROTATORIO ========== */
+let avatarFrame = 1, avatarInterval = null, avatarToggle = false;
+
+function preloadAvatarFrames(level){
+  for(let f=1; f<=4; f++){
+    const img = new Image();
+    img.src = charImagePath(level, f);
+  }
+}
+
+function startAvatarRotation(){
+  stopAvatarRotation();
+  const lvl = STATE.data.nivel;
+  preloadAvatarFrames(lvl);
+  document.getElementById('char-img-a').src = charImagePath(lvl, 1);
+  document.getElementById('mini-img-a').src = charImagePath(lvl, 1);
+  document.getElementById('char-img-b').src = charImagePath(lvl, 2);
+  document.getElementById('mini-img-b').src = charImagePath(lvl, 2);
+  avatarFrame = 1; avatarToggle = false;
+  avatarInterval = setInterval(()=>{
+    avatarFrame = (avatarFrame % 4) + 1;
+    const nextFrame = (avatarFrame % 4) + 1;
+    const lvl = STATE.data.nivel;
+    const visibleId = avatarToggle ? 'b' : 'a';
+    const hiddenId  = avatarToggle ? 'a' : 'b';
+    document.getElementById('char-img-'+hiddenId).src = charImagePath(lvl, nextFrame);
+    document.getElementById('mini-img-'+hiddenId).src = charImagePath(lvl, nextFrame);
+    document.getElementById('char-img-'+visibleId).className = 'fade-out';
+    document.getElementById('char-img-'+hiddenId).className  = 'fade-in';
+    document.getElementById('mini-img-'+visibleId).className = 'fade-out';
+    document.getElementById('mini-img-'+hiddenId).className  = 'fade-in';
+    avatarToggle = !avatarToggle;
+  }, CONFIG.AVATAR_ROTATE_MS);
+}
+
+function stopAvatarRotation(){
+  if(avatarInterval){ clearInterval(avatarInterval); avatarInterval = null; }
+}
+
+function showPowerUpPose(){
+  const w = document.getElementById('char-img-wrap');
+  w.classList.add('power-up');
+  setTimeout(()=> w.classList.remove('power-up'), 600);
+}
+
+function petCharacter(){
+  showPowerUpPose();
+  playEpic();
+  confetti({particleCount:30, spread:50, origin:{y:0.85,x:0.9}, colors:['#ff7a1f','#ffd700','#3b85ff']});
+}
+
+function updateFloatingAvatarState(){
+  const d = STATE.data; if(!d) return;
+  const fa = document.getElementById('floating-avatar');
+  document.getElementById('mini-lvl').textContent = d.nivel;
+  const burning = (d.racha||0) >= 7;
+  fa.classList.toggle('burning', burning);
+  document.querySelectorAll('.fire-emoji').forEach(el => el.style.display = burning?'block':'none');
+  const wounded = (d.hp||0) < (d.hp_max||50)*0.2;
+  fa.classList.toggle('wounded', wounded);
+}
+
+function flashFloatingAvatar(){
+  const fa = document.getElementById('floating-avatar');
+  fa.classList.add('flash');
+  setTimeout(()=> fa.classList.remove('flash'), 1000);
+}
+
+let lastScroll = 0;
+window.addEventListener('scroll', () => {
+  const fa = document.getElementById('floating-avatar');
+  if(!fa) return;
+  const sc = window.scrollY;
+  if(sc > 300 && sc > lastScroll) fa.classList.add('hidden');
+  else fa.classList.remove('hidden');
+  lastScroll = sc;
+});
 
 /* ========== LOGIN / REGISTRO ========== */
-function login(user, hash){
-  if(!user || !hash) return {ok:false, error:'Faltan datos'};
-  const u = getUserRow(user);
-  if(!u) return {ok:false, error:'Usuario no encontrado'};
-  if(u.obj.hash_password !== hash) return {ok:false, error:'Contraseña incorrecta'};
-  const safe = Object.assign({}, u.obj);
-  delete safe.hash_password;
-  return {ok:true, data: safe};
+async function doLogin(){
+  const u = document.getElementById('login-user').value.trim();
+  const p = document.getElementById('login-pass').value;
+  if(!u||!p) return msg('Completa todos los campos');
+  msg('Conectando...');
+  const hash = await sha256(p);
+  STATE.user = u;
+  try{
+    const r = await postAction('login', {passwordHash: hash});
+    if(!r.ok) return msg(r.error||'Error al iniciar sesión');
+    sessionStorage.setItem('rpg_user', u);
+    sessionStorage.setItem('rpg_hash', hash);
+    enterApp(r.data);
+  }catch(e){ msg('Error de conexión'); }
 }
 
-function register(user, hash){
-  if(!user || !hash) return {ok:false, error:'Faltan datos'};
-  if(getUserRow(user)) return {ok:false, error:'Ese héroe ya existe'};
-  const sh = sheet(SHEET_NAMES.usuarios);
-  const obj = {
-    usuario:user, hash_password:hash,
-    nivel:1, xp:0, monedas:50, hp:50, hp_max:50,
-    clase:'Sin clase',
-    stat_str:5, stat_int:5, stat_con:5, stat_cha:5,
-    racha:0, ultimo_login:todayStr(),
-    mascota_nombre:'Bebé Dragón', mascota_nivel:0, mascota_xp:0,
-    fecha_creacion:todayStr()
-  };
-  sh.appendRow(objToRow(obj, HEADERS.usuarios));
-  logAction(user,'register',{});
-  const safe = Object.assign({}, obj); delete safe.hash_password;
-  return {ok:true, data: safe};
+async function doRegister(){
+  const u = document.getElementById('login-user').value.trim();
+  const p = document.getElementById('login-pass').value;
+  if(!u||!p) return msg('Completa todos los campos');
+  if(p.length<4) return msg('La contraseña debe tener al menos 4 caracteres');
+  msg('Creando guerrero...');
+  const hash = await sha256(p);
+  STATE.user = u;
+  const r = await postAction('register', {passwordHash: hash});
+  if(!r.ok) return msg(r.error||'Error al registrar');
+  sessionStorage.setItem('rpg_user', u);
+  sessionStorage.setItem('rpg_hash', hash);
+  enterApp(r.data);
 }
 
-function getUserData(user){
-  const u = getUserRow(user);
-  if(!u) return null;
-  const safe = Object.assign({}, u.obj); delete safe.hash_password;
-  return safe;
+function msg(t){ document.getElementById('login-msg').textContent = t; }
+function doLogout(){ sessionStorage.clear(); location.reload(); }
+
+/* ========== ENTRAR A LA APP ========== */
+async function enterApp(userData){
+  document.getElementById('login-screen').style.display='none';
+  STATE.data = userData;
+  // Si no ha elegido personaje, mostrar modal
+  if(!userData.personaje){
+    document.getElementById('character-modal').classList.add('show');
+    return;
+  }
+  showApp();
+}
+
+function showApp(){
+  document.getElementById('character-modal').classList.remove('show');
+  document.getElementById('app-screen').style.display='block';
+  postAction('dailyRollover',{}).then(ro=>{
+    if(ro.ok) STATE.data = ro.data;
+    renderAll();
+    startAvatarRotation();
+  });
+  loadTasks(); loadQuests(); loadBoss(); loadShop();
+  loadInventory(); loadAchievements(); loadRanking();
+}
+
+async function choosePersonaje(name){
+  const r = await postAction('choosePersonaje',{personaje:name});
+  if(!r.ok) return alert(r.error||'Error');
+  STATE.data = r.user;
+  playLevelUpSound();
+  confetti({particleCount:200,spread:160,origin:{y:0.5},colors:['#ff7a1f','#ffd700','#3b85ff']});
+  showApp();
+}
+
+/* ========== RENDER ========== */
+function renderAll(){
+  const d = STATE.data;
+  document.getElementById('char-name').textContent = d.usuario;
+  document.getElementById('char-class').textContent = PERSONAJE_LABELS[d.personaje] || 'Guerrero Z';
+  document.getElementById('level-display').textContent = d.nivel;
+  const need = xpNeeded(d.nivel);
+  document.getElementById('xp-text').textContent = `${d.xp} / ${need}`;
+  document.getElementById('xp-bar').style.width = Math.min(100,(d.xp/need)*100)+'%';
+  document.getElementById('hp-text').textContent = `${d.hp} / ${d.hp_max}`;
+  document.getElementById('hp-bar').style.width = Math.min(100,(d.hp/d.hp_max)*100)+'%';
+  document.getElementById('coins').textContent = d.monedas;
+  document.getElementById('streak').textContent = d.racha;
+  // Stats (compatibilidad con nombres viejos por si acaso)
+  document.getElementById('stat-ki').textContent  = d.stat_ki  || d.stat_str || 5;
+  document.getElementById('stat-tec').textContent = d.stat_tec || d.stat_int || 5;
+  document.getElementById('stat-res').textContent = d.stat_res || d.stat_con || 5;
+  document.getElementById('stat-esp').textContent = d.stat_esp || d.stat_cha || 5;
+  // Mascota dragón
+  const ml = Math.min(d.mascota_nivel||0, 4);
+  document.getElementById('pet-emoji').textContent = PET_STAGES[ml];
+  document.getElementById('pet-name').textContent = PET_NAMES[ml];
+  document.getElementById('pet-xp').textContent = `XP: ${d.mascota_xp||0}`;
+  updateFloatingAvatarState();
+}
+
+/* ========== PESTAÑAS ========== */
+function showTab(name){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.toggle('active',c.id==='tab-'+name));
 }
 
 /* ========== TAREAS ========== */
-function getTasks(user){
-  const sh = sheet(SHEET_NAMES.tareas);
-  const data = sh.getDataRange().getValues();
-  const h = data[0];
-  const out = [];
-  for(let i=1;i<data.length;i++){
-    if(data[i][1] === user) out.push(rowToObj(data[i], h));
+async function loadTasks(){
+  const r = await postAction('getTasks',{});
+  if(r.ok){ STATE.tasks = r.data; renderTasks(); }
+}
+
+function renderTasks(){
+  const groups = {habito:[], diaria:[], mision:[]};
+  STATE.tasks.forEach(t=>{ if(groups[t.tipo]) groups[t.tipo].push(t); });
+  for(const k in groups){
+    const list = document.getElementById('list-'+k);
+    list.innerHTML = '';
+    if(groups[k].length===0){
+      list.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:8px;">— vacío —</div>';
+      continue;
+    }
+    groups[k].forEach(t=>{
+      const overdue = isOverdue(t);
+      const div = document.createElement('div');
+      div.className = `task-card dificultad-${t.dificultad} ${overdue?'overdue':''}`;
+      div.innerHTML = `
+        <div class="task-info">
+          <div class="task-name">${overdue?'⚠️ ':''}${escapeHtml(t.nombre)}</div>
+          <div class="task-meta">${t.dificultad.toUpperCase()} · ${statIcon(t.stat_afectado)} ${statName(t.stat_afectado)}</div>
+        </div>
+        <div class="task-actions">
+          <button class="icon-btn done" onclick="completeTask('${t.id}')">✓</button>
+          <button class="icon-btn delete" onclick="deleteTask('${t.id}')">✕</button>
+        </div>`;
+      list.appendChild(div);
+    });
   }
-  return out;
 }
 
-function addTask(user, task){
-  const sh = sheet(SHEET_NAMES.tareas);
-  const obj = {
-    id: Utilities.getUuid(),
-    usuario:user, tipo:task.tipo, nombre:task.nombre,
-    descripcion:task.descripcion||'', dificultad:task.dificultad,
-    stat_afectado:task.stat_afectado, completada:false,
-    ultima_completada:'', fecha_vencimiento:''
+function statIcon(s){
+  return ({ki:'💥',tec:'🧠',res:'🛡️',esp:'✨',
+           fuerza:'💥',inteligencia:'🧠',constitucion:'🛡️',carisma:'✨'})[s]||'';
+}
+function statName(s){
+  return ({ki:'KI',tec:'TÉC',res:'RES',esp:'ESP',
+           fuerza:'KI',inteligencia:'TÉC',constitucion:'RES',carisma:'ESP'})[s]||s;
+}
+
+function isOverdue(t){
+  if(t.tipo!=='diaria') return false;
+  if(!t.ultima_completada) return true;
+  const today = new Date().toISOString().slice(0,10);
+  return String(t.ultima_completada).slice(0,10) !== today;
+}
+
+async function addTask(e){
+  e.preventDefault();
+  const task = {
+    nombre: document.getElementById('t-name').value.trim(),
+    tipo: document.getElementById('t-type').value,
+    dificultad: document.getElementById('t-diff').value,
+    stat_afectado: document.getElementById('t-stat').value
   };
-  sh.appendRow(objToRow(obj, HEADERS.tareas));
-  return getTasks(user);
+  if(!task.nombre) return;
+  const r = await postAction('addTask',{task});
+  if(r.ok){ document.getElementById('t-name').value=''; STATE.tasks = r.data; renderTasks(); }
 }
 
-function findTaskRow(user, taskId){
-  const sh = sheet(SHEET_NAMES.tareas);
-  const data = sh.getDataRange().getValues();
-  for(let i=1;i<data.length;i++){
-    if(data[i][0]===taskId && data[i][1]===user){
-      return {row:i+1, obj: rowToObj(data[i], data[0])};
+async function completeTask(id){
+  const r = await postAction('completeTask',{taskId:id});
+  if(!r.ok) return alert(r.error||'Error');
+  const oldLevel = STATE.data.nivel;
+  STATE.data = r.user;
+  STATE.tasks = r.tasks;
+  playEpic();
+  showPowerUpPose();
+  confetti({particleCount:80, spread:70, origin:{y:0.7}, colors:['#ff7a1f','#ffd700','#3b85ff','#39ff7a']});
+  renderTasks(); renderAll();
+  if(r.user.nivel > oldLevel){
+    showLevelUp();
+    flashFloatingAvatar();
+    startAvatarRotation();
+    const oldBucket = Math.ceil(oldLevel/10)*10;
+    const newBucket = Math.ceil(r.user.nivel/10)*10;
+    if(newBucket > oldBucket){
+      setTimeout(()=>showEvolve(oldBucket,newBucket), 1600);
     }
   }
-  return null;
+  loadBoss(); loadAchievements();
 }
 
-function completeTask(user, taskId){
-  const t = findTaskRow(user, taskId);
-  if(!t) return {ok:false, error:'Tarea no encontrada'};
-  const u = getUserRow(user);
-  if(!u) return {ok:false, error:'Usuario no encontrado'};
-  const uo = u.obj;
+async function deleteTask(id){
+  if(!confirm('¿Eliminar tarea?')) return;
+  const r = await postAction('deleteTask',{taskId:id});
+  if(r.ok){ STATE.tasks = r.data; renderTasks(); }
+}
 
-  let baseXp = DIFFICULTY_XP[t.obj.dificultad] || 25;
-  let baseCoins = Math.round(baseXp/2);
+/* ========== MISIONES ========== */
+async function loadQuests(){
+  const r = await postAction('getQuests',{});
+  if(r.ok){ STATE.quests = r.data; renderQuests(); }
+}
 
-  const cls = uo.clase || '';
-  if(cls==='Guerrero' && t.obj.stat_afectado==='fuerza')       baseXp = Math.round(baseXp*1.2);
-  if(cls==='Mago'     && t.obj.stat_afectado==='inteligencia') baseXp = Math.round(baseXp*1.2);
-  if(cls==='Picaro')                                            baseCoins = Math.round(baseCoins*1.2);
-
-  const streakBonus = Math.min((uo.racha||0)*2, 50);
-  baseXp += streakBonus;
-
-  const statKey = ({fuerza:'stat_str',inteligencia:'stat_int',constitucion:'stat_con',carisma:'stat_cha'})[t.obj.stat_afectado];
-  if(statKey && Math.random()<0.34) uo[statKey] = (uo[statKey]||0)+1;
-
-  uo.xp = (uo.xp||0) + baseXp;
-  uo.monedas = (uo.monedas||0) + baseCoins;
-
-  const leveledUp = applyLevelUp(uo);
-
-  const sh = sheet(SHEET_NAMES.tareas);
-  if(t.obj.tipo==='diaria'){
-    t.obj.ultima_completada = todayStr();
-  } else if(t.obj.tipo==='mision'){
-    t.obj.completada = true;
+function renderQuests(){
+  const box = document.getElementById('quests-list');
+  box.innerHTML = '';
+  if(STATE.quests.length===0){
+    box.innerHTML = '<div style="color:var(--muted);padding:8px;">Aún no tienes misiones. ¡Crea una arriba!</div>';
+    return;
   }
-  sh.getRange(t.row,1,1,HEADERS.tareas.length).setValues([objToRow(t.obj, HEADERS.tareas)]);
-
-  attackBoss(user, Math.round(baseXp/2));
-  saveUser(u.row, uo);
-  logAction(user,'completeTask',{taskId, xp:baseXp, coins:baseCoins});
-  checkAchievements(user, uo);
-
-  const safe = Object.assign({}, uo); delete safe.hash_password;
-  return {ok:true, user: safe, tasks: getTasks(user), leveledUp};
-}
-
-function deleteTask(user, taskId){
-  const t = findTaskRow(user, taskId);
-  if(t) sheet(SHEET_NAMES.tareas).deleteRow(t.row);
-  return getTasks(user);
-}
-
-/* ========== MISIONES ÉPICAS (con editor completo) ========== */
-function getQuests(user){
-  const sh = sheet(SHEET_NAMES.misiones);
-  const data = sh.getDataRange().getValues();
-  const h = data[0];
-  const out = [];
-  for(let i=1;i<data.length;i++){
-    if(data[i][1] === user) out.push(rowToObj(data[i], h));
-  }
-  return out;
-}
-
-function addQuest(user, q){
-  const sh = sheet(SHEET_NAMES.misiones);
-  const obj = {
-    id: Utilities.getUuid(),
-    usuario:user, titulo:q.titulo, descripcion:q.descripcion||'',
-    progreso:0, objetivo:q.objetivo||5,
-    recompensa_xp:q.recompensa_xp||100,
-    recompensa_monedas:q.recompensa_monedas||50,
-    estado:'activa'
-  };
-  sh.appendRow(objToRow(obj, HEADERS.misiones));
-  return getQuests(user);
-}
-
-function findQuestRow(user, questId){
-  const sh = sheet(SHEET_NAMES.misiones);
-  const data = sh.getDataRange().getValues();
-  for(let i=1;i<data.length;i++){
-    if(data[i][0]===questId && data[i][1]===user){
-      return {row:i+1, obj: rowToObj(data[i], data[0])};
-    }
-  }
-  return null;
-}
-
-// Aumenta (o disminuye) el progreso de una misión
-function updateQuest(user, questId, delta){
-  const q = findQuestRow(user, questId);
-  if(!q) return getQuests(user);
-  q.obj.progreso = Math.max(0, Math.min(q.obj.objetivo, (q.obj.progreso||0) + delta));
-  // Si llega al objetivo, marca como completada (lista para reclamar)
-  if(q.obj.progreso >= q.obj.objetivo && q.obj.estado === 'activa'){
-    q.obj.estado = 'completada';
-  }
-  const sh = sheet(SHEET_NAMES.misiones);
-  sh.getRange(q.row,1,1,HEADERS.misiones.length).setValues([objToRow(q.obj, HEADERS.misiones)]);
-  logAction(user,'updateQuest',{questId, delta});
-  return getQuests(user);
-}
-
-// Borra una misión
-function deleteQuestRow(user, questId){
-  const q = findQuestRow(user, questId);
-  if(q) sheet(SHEET_NAMES.misiones).deleteRow(q.row);
-  return getQuests(user);
-}
-
-// Reclama la recompensa de una misión completada
-function claimQuest(user, questId){
-  const q = findQuestRow(user, questId);
-  if(!q) return {ok:false, error:'Misión no encontrada'};
-  if(q.obj.estado === 'reclamada') return {ok:false, error:'Recompensa ya reclamada'};
-  if(q.obj.progreso < q.obj.objetivo) return {ok:false, error:'Misión no completada todavía'};
-  const u = getUserRow(user);
-  if(!u) return {ok:false, error:'Usuario'};
-  const uo = u.obj;
-  uo.xp = (uo.xp||0) + (q.obj.recompensa_xp||0);
-  uo.monedas = (uo.monedas||0) + (q.obj.recompensa_monedas||0);
-  applyLevelUp(uo);
-  saveUser(u.row, uo);
-
-  // Marca la misión como reclamada
-  q.obj.estado = 'reclamada';
-  sheet(SHEET_NAMES.misiones).getRange(q.row,1,1,HEADERS.misiones.length)
-    .setValues([objToRow(q.obj, HEADERS.misiones)]);
-
-  logAction(user,'claimQuest',{questId, xp:q.obj.recompensa_xp, coins:q.obj.recompensa_monedas});
-  checkAchievements(user, uo);
-  const safe = Object.assign({}, uo); delete safe.hash_password;
-  return {ok:true, user: safe, data: getQuests(user)};
-}
-
-/* ========== JEFE SEMANAL ========== */
-function getBoss(user){
-  const sh = sheet(SHEET_NAMES.jefes);
-  const data = sh.getDataRange().getValues();
-  const week = currentWeek();
-  for(let i=1;i<data.length;i++){
-    if(data[i][1]===user && data[i][2]===week){
-      return rowToObj(data[i], data[0]);
-    }
-  }
-  const u = getUserRow(user); if(!u) return null;
-  const lvl = u.obj.nivel||1;
-  const hp = lvl*100 + 200;
-  const obj = {
-    id: Utilities.getUuid(),
-    usuario:user, semana:week,
-    nombre:BOSS_NAMES[Math.floor(Math.random()*BOSS_NAMES.length)],
-    hp_actual:hp, hp_max:hp,
-    recompensa:lvl*30 + 50, derrotado:false
-  };
-  sh.appendRow(objToRow(obj, HEADERS.jefes));
-  return obj;
-}
-
-function attackBoss(user, damage){
-  const sh = sheet(SHEET_NAMES.jefes);
-  const data = sh.getDataRange().getValues();
-  const week = currentWeek();
-  for(let i=1;i<data.length;i++){
-    if(data[i][1]===user && data[i][2]===week){
-      const obj = rowToObj(data[i], data[0]);
-      if(obj.derrotado) return;
-      obj.hp_actual = Math.max(0, obj.hp_actual - damage);
-      if(obj.hp_actual<=0 && !obj.derrotado){
-        obj.derrotado = true;
-        const u = getUserRow(user);
-        if(u){
-          u.obj.monedas = (u.obj.monedas||0) + obj.recompensa;
-          u.obj.xp = (u.obj.xp||0) + 200;
-          applyLevelUp(u.obj);
-          saveUser(u.row, u.obj);
-          unlockAchievement(user,'primer_jefe');
+  STATE.quests.forEach(q=>{
+    const pct = Math.min(100,(q.progreso/q.objetivo)*100);
+    const isDone = q.progreso >= q.objetivo;
+    const isClaimed = q.estado === 'reclamada';
+    const div = document.createElement('div');
+    div.className = 'quest-card' + (isDone?' complete':'');
+    div.innerHTML = `
+      <div class="quest-title">🐉 ${escapeHtml(q.titulo)} ${isDone?'<span class="badge-complete">¡COMPLETADA!</span>':''}</div>
+      <div class="quest-desc">${escapeHtml(q.descripcion||'')}</div>
+      <div class="bar"><div class="bar-fill" style="width:${pct}%;"></div></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px;">${q.progreso} / ${q.objetivo} · Recompensa: ${q.recompensa_xp} EXP, ${q.recompensa_monedas}💰</div>
+      <div class="quest-actions">
+        ${isClaimed
+          ? '<span style="color:var(--muted);font-size:12px;">✅ Recompensa ya reclamada</span>'
+          : isDone
+            ? `<button class="btn btn-gold" onclick="claimQuest('${q.id}')">🎁 Reclamar recompensa</button>`
+            : `<button class="btn btn-secondary" onclick="advanceQuest('${q.id}')">+1 progreso</button>`
         }
-      }
-      sh.getRange(i+1,1,1,HEADERS.jefes.length).setValues([objToRow(obj,HEADERS.jefes)]);
-      return;
-    }
+        <button class="btn" style="background:var(--red);" onclick="deleteQuest('${q.id}')">✕ Borrar</button>
+      </div>`;
+    box.appendChild(div);
+  });
+}
+
+async function addQuestForm(e){
+  e.preventDefault();
+  const quest = {
+    titulo: document.getElementById('q-title').value.trim(),
+    descripcion: document.getElementById('q-desc').value.trim(),
+    objetivo: parseInt(document.getElementById('q-obj').value)||5,
+    recompensa_xp: parseInt(document.getElementById('q-xp').value)||100,
+    recompensa_monedas: parseInt(document.getElementById('q-coins').value)||50
+  };
+  if(!quest.titulo) return;
+  const r = await postAction('addQuest',{quest});
+  if(r.ok){
+    document.getElementById('q-title').value='';
+    document.getElementById('q-desc').value='';
+    STATE.quests = r.data;
+    renderQuests();
+    confetti({particleCount:30,spread:60,origin:{y:0.7},colors:['#3b85ff']});
   }
 }
 
-/* ========== TIENDA E INVENTARIO ========== */
-function buyItem(user, itemId){
-  const item = SHOP_ITEMS.find(x=>x.id===itemId);
-  if(!item) return {ok:false, error:'Objeto no existe'};
-  const u = getUserRow(user); if(!u) return {ok:false, error:'Usuario'};
-  if((u.obj.monedas||0) < item.precio) return {ok:false, error:'No tienes monedas suficientes'};
-  u.obj.monedas -= item.precio;
-  saveUser(u.row, u.obj);
-  const sh = sheet(SHEET_NAMES.inventario);
-  sh.appendRow(objToRow({
-    id: Utilities.getUuid(), usuario:user, item_id:item.id,
-    nombre:item.nombre, imagen:item.imagen, equipado:false
-  }, HEADERS.inventario));
-  checkAchievements(user, u.obj);
-  const safe = Object.assign({}, u.obj); delete safe.hash_password;
-  return {ok:true, user:safe};
+async function advanceQuest(id){
+  const r = await postAction('updateQuest',{questId:id, delta:1});
+  if(r.ok){
+    STATE.quests = r.data;
+    renderQuests();
+    playEpic();
+    confetti({particleCount:40,spread:60,origin:{y:0.7},colors:['#3b85ff','#ffd700']});
+  }
 }
 
-function getInventory(user){
-  const sh = sheet(SHEET_NAMES.inventario);
-  const data = sh.getDataRange().getValues();
-  const h = data[0];
-  const out = [];
-  for(let i=1;i<data.length;i++){
-    if(data[i][1]===user) out.push(rowToObj(data[i], h));
-  }
-  return out;
+async function deleteQuest(id){
+  if(!confirm('¿Borrar esta misión?')) return;
+  const r = await postAction('deleteQuest',{questId:id});
+  if(r.ok){ STATE.quests = r.data; renderQuests(); }
 }
 
-function equipItem(user, invId){
-  const sh = sheet(SHEET_NAMES.inventario);
-  const data = sh.getDataRange().getValues();
-  for(let i=1;i<data.length;i++){
-    if(data[i][0]===invId && data[i][1]===user){
-      const cur = data[i][5];
-      sh.getRange(i+1,6).setValue(!cur);
-      break;
-    }
+async function claimQuest(id){
+  const oldLevel = STATE.data.nivel;
+  const r = await postAction('claimQuest',{questId:id});
+  if(!r.ok) return alert(r.error||'Error');
+  STATE.data = r.user;
+  STATE.quests = r.data;
+  renderAll();
+  renderQuests();
+  showLevelUp();
+  confetti({particleCount:250,spread:160,origin:{y:0.5},colors:['#ff7a1f','#ffd700']});
+  if(r.user.nivel > oldLevel){
+    flashFloatingAvatar();
+    startAvatarRotation();
   }
-  return getInventory(user);
+}
+
+/* ========== JEFE ========== */
+async function loadBoss(){
+  const r = await postAction('getBoss',{});
+  if(r.ok){ STATE.boss = r.data; renderBoss(); }
+}
+
+const BOSS_EMOJIS = {
+  'Raditz':'👹','Nappa':'👴','Freezer':'👽','Cell':'🐛',
+  'Majin Boo':'🍭','Broly':'💢','Beerus':'🐱','Jiren':'👊'
+};
+
+function renderBoss(){
+  const b = STATE.boss; if(!b) return;
+  document.getElementById('boss-emoji').textContent = BOSS_EMOJIS[b.nombre]||'👹';
+  document.getElementById('boss-name').textContent = b.derrotado ? `${b.nombre} (DERROTADO ✓)` : b.nombre;
+  document.getElementById('boss-hp-text').textContent = `${Math.max(0,b.hp_actual)} / ${b.hp_max}`;
+  document.getElementById('boss-hp-bar').style.width = Math.max(0,(b.hp_actual/b.hp_max)*100)+'%';
+  document.getElementById('boss-log').textContent = `Recompensa por derrotarlo: ${b.recompensa} 💰 + 200 EXP`;
+}
+
+/* ========== TIENDA ========== */
+async function loadShop(){
+  const r = await postAction('getShop',{});
+  if(r.ok){ STATE.shop = r.data; renderShop(); }
+}
+
+function renderShop(){
+  const grid = document.getElementById('shop-grid');
+  grid.innerHTML='';
+  STATE.shop.forEach(it=>{
+    const div = document.createElement('div');
+    div.className = `shop-item ${it.rareza}`;
+    div.innerHTML = `
+      <div class="shop-emoji">${it.imagen}</div>
+      <div class="shop-name">${escapeHtml(it.nombre)}</div>
+      <div class="shop-rarity" style="color:${rarityColor(it.rareza)};">${it.rareza}</div>
+      <div class="shop-price">${it.precio} 💰</div>
+      <button class="btn btn-primary" style="font-size:11px;padding:6px 10px;" onclick="buyItem('${it.id}')">Comprar</button>`;
+    grid.appendChild(div);
+  });
+}
+
+function rarityColor(r){ return ({comun:'#888',raro:'#4af',epico:'#b14aff',legendario:'#ffd700'})[r]||'#888'; }
+
+async function buyItem(id){
+  const r = await postAction('buyItem',{itemId:id});
+  if(!r.ok) return alert(r.error||'No tienes monedas suficientes');
+  STATE.data = r.user; renderAll();
+  loadInventory();
+  playEpic();
+  confetti({particleCount:40,spread:60,origin:{y:0.6},colors:['#ffd700']});
+}
+
+/* ========== INVENTARIO ========== */
+async function loadInventory(){
+  const r = await postAction('getInventory',{});
+  if(r.ok){ STATE.inventory = r.data; renderInventory(); }
+}
+
+function renderInventory(){
+  const grid = document.getElementById('inv-grid');
+  grid.innerHTML='';
+  if(STATE.inventory.length===0){
+    grid.innerHTML = '<div style="color:var(--muted);">Tu inventario está vacío.</div>';
+    return;
+  }
+  STATE.inventory.forEach(it=>{
+    const div = document.createElement('div');
+    div.className = `inv-item ${it.equipado?'equipped':''}`;
+    div.onclick = ()=>equipItem(it.id);
+    div.innerHTML = `<div style="font-size:36px;">${it.imagen||'🎁'}</div><div style="font-size:11px;">${escapeHtml(it.nombre)}</div>
+      <div style="font-size:10px;color:var(--gold);">${it.equipado?'Equipado':'Equipar'}</div>`;
+    grid.appendChild(div);
+  });
+}
+
+async function equipItem(id){
+  const r = await postAction('equipItem',{invId:id});
+  if(r.ok){ STATE.inventory = r.data; renderInventory(); }
 }
 
 /* ========== LOGROS ========== */
-function getAchievements(user){
-  const sh = sheet(SHEET_NAMES.logros);
-  const data = sh.getDataRange().getValues();
-  const unlocked = {};
-  for(let i=1;i<data.length;i++){
-    if(data[i][1]===user) unlocked[data[i][2]] = data[i][3];
-  }
-  return ACHIEVEMENTS.map(a => Object.assign({}, a, {
-    unlocked: !!unlocked[a.id],
-    fecha: unlocked[a.id]||null
-  }));
+async function loadAchievements(){
+  const r = await postAction('getAchievements',{});
+  if(r.ok){ STATE.achievements = r.data; renderAchievements(); }
 }
 
-function unlockAchievement(user, achId){
-  const sh = sheet(SHEET_NAMES.logros);
-  const data = sh.getDataRange().getValues();
-  for(let i=1;i<data.length;i++){
-    if(data[i][1]===user && data[i][2]===achId) return false;
-  }
-  sh.appendRow([Utilities.getUuid(), user, achId, todayStr()]);
-  return true;
-}
-
-function checkAchievements(user, uo){
-  const hour = new Date().getHours();
-  if(hour < 9) unlockAchievement(user,'madrugador');
-  if((uo.nivel||0) >= 50) unlockAchievement(user,'nivel_50');
-  if((uo.racha||0) >= 7)  unlockAchievement(user,'racha_7');
-  if((uo.racha||0) >= 30) unlockAchievement(user,'racha_30');
-  if(uo.clase && uo.clase!=='Sin clase') unlockAchievement(user,'maestro_clase');
-  if(getInventory(user).length >= 5) unlockAchievement(user,'coleccionista');
-  const logSh = sheet(SHEET_NAMES.log);
-  const ld = logSh.getDataRange().getValues();
-  let cnt = 0;
-  for(let i=1;i<ld.length;i++){
-    if(ld[i][1]===user && ld[i][2]==='completeTask') cnt++;
-  }
-  if(cnt >= 100) unlockAchievement(user,'tareas_100');
+function renderAchievements(){
+  const grid = document.getElementById('ach-grid');
+  grid.innerHTML='';
+  STATE.achievements.forEach(a=>{
+    const div = document.createElement('div');
+    div.className = `ach-card ${a.unlocked?'unlocked':'locked'}`;
+    div.innerHTML = `<div class="ach-emoji">${a.emoji}</div><div class="ach-name">${escapeHtml(a.nombre)}</div><div class="ach-desc">${escapeHtml(a.descripcion)}</div>`;
+    grid.appendChild(div);
+  });
 }
 
 /* ========== RANKING ========== */
-function getRanking(){
-  const sh = sheet(SHEET_NAMES.usuarios);
-  const data = sh.getDataRange().getValues();
-  const h = data[0];
-  const arr = [];
-  for(let i=1;i<data.length;i++){
-    const o = rowToObj(data[i], h);
-    arr.push({usuario:o.usuario, nivel:o.nivel, xp:o.xp, clase:o.clase, racha:o.racha});
-  }
-  arr.sort((a,b)=> (b.nivel-a.nivel) || (b.xp-a.xp));
-  return arr;
+async function loadRanking(){
+  const r = await postAction('getRanking',{});
+  if(r.ok){ STATE.ranking = r.data; renderRanking(); }
 }
 
-/* ========== CLASE Y MASCOTA ========== */
-function chooseClass(user, clase){
-  const allowed = ['Guerrero','Mago','Picaro','Sanador'];
-  if(!allowed.includes(clase)) return {ok:false, error:'Clase inválida'};
-  const u = getUserRow(user); if(!u) return {ok:false,error:'Usuario'};
-  u.obj.clase = clase;
-  saveUser(u.row, u.obj);
-  unlockAchievement(user,'maestro_clase');
-  const safe = Object.assign({}, u.obj); delete safe.hash_password;
-  return {ok:true, user:safe};
-}
-
-function feedPet(user, coins){
-  const u = getUserRow(user); if(!u) return {ok:false,error:'Usuario'};
-  if((u.obj.monedas||0) < coins) return {ok:false,error:'Sin monedas'};
-  u.obj.monedas -= coins;
-  u.obj.mascota_xp = (u.obj.mascota_xp||0) + coins;
-  const thresholds = [50, 200, 500, 1000];
-  let nivel = 0;
-  thresholds.forEach((t,i)=>{ if(u.obj.mascota_xp >= t) nivel = i+1; });
-  u.obj.mascota_nivel = nivel;
-  saveUser(u.row, u.obj);
-  const safe = Object.assign({}, u.obj); delete safe.hash_password;
-  return {ok:true, user:safe};
-}
-
-/* ========== ROLLOVER DIARIO ========== */
-function dailyRollover(user){
-  const u = getUserRow(user); if(!u) return null;
-  const uo = u.obj;
-  const today = todayStr();
-  const last = uo.ultimo_login;
-  if(last === today){
-    const safe = Object.assign({}, uo); delete safe.hash_password;
-    return safe;
-  }
-  const tasks = getTasks(user);
-  const dailies = tasks.filter(t => t.tipo==='diaria');
-  let completedYesterday = 0;
-  let missed = 0;
-  dailies.forEach(t=>{
-    if(String(t.ultima_completada).slice(0,10) === String(last).slice(0,10)) completedYesterday++;
-    else missed++;
+function renderRanking(){
+  const tb = document.getElementById('ranking-body');
+  tb.innerHTML='';
+  STATE.ranking.forEach((u,i)=>{
+    const tr = document.createElement('tr');
+    if(u.usuario===STATE.user) tr.className='me';
+    tr.innerHTML = `<td>${i+1}</td><td>${escapeHtml(u.usuario)}</td><td>${u.nivel}</td><td>${u.xp}</td><td>${escapeHtml(PERSONAJE_LABELS[u.personaje]||u.personaje||'-')}</td><td>🔥 ${u.racha}</td>`;
+    tb.appendChild(tr);
   });
-  uo.hp = Math.max(0, (uo.hp||uo.hp_max) - missed*10);
-  if(uo.clase==='Sanador'){
-    uo.hp = Math.min(uo.hp_max, (uo.hp||0)+5);
-  }
-  if(completedYesterday > 0) uo.racha = (uo.racha||0)+1;
-  else uo.racha = 0;
-  if(uo.hp <= 0){
-    uo.xp = Math.round((uo.xp||0)*0.8);
-    uo.monedas = Math.round((uo.monedas||0)*0.8);
-    uo.hp = uo.hp_max;
-  }
-  uo.ultimo_login = today;
-  saveUser(u.row, uo);
-  checkAchievements(user, uo);
-  const safe = Object.assign({}, uo); delete safe.hash_password;
-  return safe;
 }
+
+/* ========== MASCOTA ========== */
+async function feedPet(){
+  if(STATE.data.monedas < 10) return alert('Necesitas 10 monedas');
+  const r = await postAction('feedPet',{coins:10});
+  if(r.ok){ STATE.data = r.user; renderAll(); confetti({particleCount:30,origin:{y:0.7},colors:['#ffd700']}); playEpic(); }
+}
+
+/* ========== EFECTOS ÉPICOS ========== */
+function showLevelUp(){
+  const o = document.getElementById('levelup-overlay');
+  o.classList.add('show');
+  confetti({particleCount:200,spread:120,origin:{y:0.6},colors:['#ff7a1f','#ffd700','#3b85ff']});
+  playLevelUpSound();
+  setTimeout(()=>o.classList.remove('show'), 1600);
+}
+
+function showEvolve(oldBucket, newBucket){
+  const o = document.getElementById('evolve-overlay');
+  const p = (STATE.data && STATE.data.personaje) || 'goku';
+  document.getElementById('evolve-old').src = `./images/${p}/lvl_${Math.min(100,oldBucket)}_1.png`;
+  document.getElementById('evolve-new').src = `./images/${p}/lvl_${Math.min(100,newBucket)}_1.png`;
+  o.classList.add('show');
+  confetti({particleCount:300,spread:180,origin:{y:0.5},colors:['#ff7a1f','#ffd700']});
+  playLevelUpSound();
+}
+
+function closeEvolve(){ document.getElementById('evolve-overlay').classList.remove('show'); }
+
+/* ========== AUTO-LOGIN ========== */
+window.addEventListener('DOMContentLoaded', async ()=>{
+  const u = sessionStorage.getItem('rpg_user');
+  const h = sessionStorage.getItem('rpg_hash');
+  if(u&&h){
+    STATE.user = u;
+    try{
+      const r = await postAction('login',{passwordHash:h});
+      if(r.ok) enterApp(r.data);
+    }catch(e){}
+  }
+});
+</script>
+
+</body>
+</html>
